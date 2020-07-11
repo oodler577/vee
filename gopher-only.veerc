@@ -1,0 +1,4 @@
+# tired of hitting "-G -U -f none" all the time,
+GOPHERMODE=2                    # 2 turns off all HTML
+_CUSTOM_UMASK=0022              # default env on SDF has umask set as 0077
+FORMAT_FUNC=with_no_formatting  # default formating (inline fmt is my current preference)
