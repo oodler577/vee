@@ -1,0 +1,119 @@
+#!/bin/sh
+
+# This is a companion tool to vee that is used internally by vee; if
+# you wish to write your own custom scripts to manage your posts, then
+# then I suggest using this tool for extracting out the relevant bits
+# you wish to use for your scripts (e.g., title (-t), date (-d), etc).
+
+# Usage:
+#   echo "path/to/*.raw" | veecat [-t | -d | -a ]  # I know this is funky
+
+# preserve new lines
+OLD_IFS=$IFS
+IFS=
+
+ die_error()
+{
+  echo "$1"
+  exit 1
+}
+
+ die_cleanly()
+{
+  exit 0
+}
+
+ read_config()
+{ if [ -e ./.veerc ]; then
+    . ./.veerc
+  fi
+} 
+
+ get_title()
+{
+  TITLE=$(head -n 3 "$1" | tail -n 1)
+  echo "$TITLE"
+}
+
+ get_date()
+{
+  DATE=$(head -n 1 "$1")
+  echo "$DATE"
+}
+
+ get_header()
+{
+  # get line one through line 5, the entire header w/o separator
+  echo $(cat "$1" | head -n 5)
+}
+
+ get_body()
+{
+  # figure out how many lones file is for $(tail) command
+  LC=$(wc -l "$1" | awk '{print "$1"}')
+  BC=$(($LC-6))
+  $(cat "$1" | tail -n "$BC")
+
+}
+
+ get_all()
+{
+  cat "$1"
+}
+
+ die_error()
+{
+  echo "$1"
+  exit 1
+}
+
+ die_cleanly()
+{
+  exit 0
+}
+
+SHOWBODY=0
+SHOWTITLE=0
+SHOWDATE=0
+SHOWALL=0
+
+while getopts 'abdt' option; do
+  case $option in
+   a) SHOWALL=1
+      ;;
+   b) SHOWBODY=1
+      ;;
+   d) SHOWDATE=1
+      ;;
+   t) SHOWTITLE=1
+      ;;
+  esac
+done
+
+read_config
+
+# if -tdb detected, do the right thing and do a SHOWALL (i.e., -tbd == -a )
+if [ $SHOWTITLE -eq 1 ] && [ $SHOWDATE -eq 1 ] && [ $SHOWBODY -eq 1 ]; then
+  SHOWALL=1
+fi
+
+# kind of funky, but accepts the name of the .raw file via standard in
+while read -r IN <&0 ; do
+  # make sure file exists, else just ignore line (more Unix-y this way)
+  if [ -e "$IN" ]; then
+    # assumes file is a proper *.raw , else GIGO
+    if [ $SHOWALL -eq 1 ]; then
+      echo $(get_all "$IN")
+    else
+      if [ $SHOWTITLE -eq 1 ]; then
+        echo $(get_title "$IN")
+      fi
+      if [ $SHOWDATE -eq 1 ]; then
+        echo $(get_date "$IN")
+      fi
+      if [ $SHOWBODY -eq 1 ]; then
+        echo $(get_body "$IN")
+      fi
+    fi
+  fi
+done

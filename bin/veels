@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# This is a companion tool to vee that is used internally by vee; if
+# you plan on writing custom scripts to manage your posts, I do suggest
+# using `veels` as the primary was of listing the files for iteration
+# or for whatever you use it for.
+
+#Usage:
+#  veels [ -d dir/with/.raw/files ] [ -r ] [ -e raw|txt ]
+
+DIR=.vee
+SORT_NEW_FIRST='sort -t. -nr'
+SORT_OLD_FIRST='sort -t. -n'
+SORT="$SORT_NEW_FIRST"
+STRIPEXT=0
+USELS=0
+LSOPTS='-lat'
+EXT=raw
+
+ die_error()
+{ 
+  echo "$1"
+  exit 1
+}
+
+ die_cleanly()
+{ 
+  exit 0
+}
+
+while getopts 'd:e:hlL:rx' option; do
+    case $option in
+    d) if [ -d "$OPTARG" ]; then
+         DIR="$OPTARG"
+       else
+         echo "$OPTARG" is not a directory!
+         die_cleanly
+       fi
+       ;;
+    e) EXT=$OPTARG
+       ;;
+    l) USELS=1 #use ls with default opts
+       ;;
+    L) USELS=1 #use ls with custom opts
+       LSOPTS="$OPTARG"
+       ;;
+    r) SORT=$SORT_OLD_FIRST  # list in reverse post order
+       ;;
+    x) STRIPEXT=1 #strip .raw from output
+       ;;
+    h) usage # some help page
+       die_cleanly
+       ;;
+    esac
+done
+
+ read_config()
+{ if [ -e ./.veerc ]; then
+    . ./.veerc
+  fi
+} 
+
+ get_sorted()
+{
+  ls -1 ${DIR}/*.${EXT} | ${SORT}
+}
+
+ _ls ()
+{
+  ls ${LSOPTS} ${1}
+}
+
+#-- main program body
+
+read_config   
+
+for f in $(get_sorted); do
+  if [ 1 -eq $USELS ]; then
+      _ls "$f"
+  else
+    if [ 1 -eq $STRIPEXT ]; then
+      echo "${f%\.*}"
+    else 
+      echo "$f"
+    fi
+  fi
+done
