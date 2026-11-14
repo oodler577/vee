@@ -24,7 +24,8 @@ Alpine/BusyBox, native macOS, and FreeBSD.
 - Retain original dates during rebuilds; refresh edited HTML/Gopher titles.
 - Apply explicit CLI settings after config; respect configured directories.
 - Restrict purge to known post suffixes and support Gopher-only purge.
-- Repair optional publishing to include the .vee files that published links need.
+- Repair optional publishing to recursively include the .vee files that published
+  links need and preserve the phlogsrc symlink.
 - Repair bundled custom formatter examples and test dispatch/hooks without
   requiring third-party formatters.
 - Document installation of all companion commands, compatibility boundaries,

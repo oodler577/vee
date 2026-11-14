@@ -3,6 +3,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -27,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y busybox groff
+        run: sudo apt-get update && sudo apt-get install -y busybox groff rsync
       - run: uname -a; perl -v
       - run: prove -lr t
         env:
@@ -47,7 +48,7 @@ jobs:
       - name: BusyBox userland without groff
         run: |
           docker run --rm -v "$PWD:/src:ro" alpine:3.22 sh -ec '
-            apk add --no-cache perl perl-utils
+            apk add --no-cache perl perl-utils rsync
             mkdir /work
             cp -R /src/. /work/
             adduser -D tester
@@ -63,7 +64,7 @@ jobs:
           persist-credentials: false
       - uses: vmactions/freebsd-vm@811efaaac0668df8bfb8308c3ec997b5ab50037b # v1
         with:
-          prepare: pkg install -y perl5
+          prepare: pkg install -y perl5 rsync
           run: |
             set -e
             uname -a
