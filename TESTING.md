@@ -24,7 +24,9 @@ native userland. Do not put GNU replacements first on PATH in BSD jobs.
 Tests cover CLI validation, source-byte preservation, HTML/Gopher modes, raw
 metadata extraction, numeric post ordering, custom paths/config/templates,
 editing, rebuilds, purge boundaries, formatters, failures, time zones, and
-permissions. Permission-denial assertions skip explicitly when run as root;
+permissions. Installer tests cover user-local and custom prefixes, installed
+commands, mocked GitHub downloads, failed downloads, and destination conflicts.
+Permission-denial assertions skip explicitly when run as root;
 Ubuntu/macOS and the Alpine job run them as ordinary users.
 
 Extended tests in xt/ exercise seeded generated input, bulk rebuilds, concurrent

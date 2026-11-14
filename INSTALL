@@ -2,13 +2,29 @@ vee runtime: POSIX sh and common Unix utilities (including awk, sed, sort,
 fold, find, head, tail, cut, and date with +%s support). groff and fmt are optional: the
 default formatter falls back to fmt or fold. Perl is required only to run the tests.
 
-Install all six executable commands from bin/ into one directory on PATH:
+Install for your user account from a checkout or extracted GitHub archive:
 
-    mkdir -p "$HOME/bin"
-    cp bin/vee bin/veels bin/veecat bin/veefind bin/vee-rebuild bin/vee-publish "$HOME/bin/"
-    chmod 755 "$HOME/bin/vee" "$HOME/bin/veels" "$HOME/bin/veecat" "$HOME/bin/veefind" "$HOME/bin/vee-rebuild" "$HOME/bin/vee-publish"
-    PATH="$HOME/bin:$PATH"
-    export PATH
+    sh install.sh
+
+This installs all six commands into "$HOME/.local/bin" without root access.
+The installer prints a PATH command if needed. It does not edit your shell startup
+files or blog configuration. Re-running it replaces the installed commands.
+
+To install into "$HOME/bin" instead:
+
+    sh install.sh --prefix "$HOME"
+
+Without a checkout, download the standalone installer from GitHub:
+
+    curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+    sh install.sh
+
+The standalone installer uses curl or wget to fetch a pinned, tested 2.0 commit;
+it needs neither Git nor Perl. VEE_REF can override the source Git ref. It stages
+and validates all six scripts before replacing any commands. Unusual filesystem
+errors during the final replacements can still leave a partially updated install;
+correct the error and rerun the installer. Existing destination symlinks or
+directories are refused. Local checkout installs always use the adjacent bin/.
 
 Alternatively, add the checkout's bin/ directory to PATH. No build step.
 

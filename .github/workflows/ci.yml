@@ -77,5 +77,5 @@ jobs:
         with:
           persist-credentials: false
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: shellcheck -S warning bin/vee bin/vee-* bin/veecat bin/veels bin/veefind custom-formatters/*.sh
-      - run: for script in bin/vee bin/vee-* bin/veecat bin/veels bin/veefind; do sh -n "$script"; done
+      - run: shellcheck -S warning install.sh bin/vee bin/vee-* bin/veecat bin/veels bin/veefind custom-formatters/*.sh
+      - run: for script in install.sh bin/vee bin/vee-* bin/veecat bin/veels bin/veefind; do sh -n "$script"; done

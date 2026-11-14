@@ -9,7 +9,7 @@ use File::Spec;
 use Text::ParseWords qw(shellwords);
 use POSIX            qw(setsid WNOHANG);
 use Time::HiRes      qw(time sleep);
-our @EXPORT = qw(blog run_vee run_tool write_file slurp raw_files bin_path);
+our @EXPORT = qw(blog run_vee run_tool run_command write_file slurp raw_files bin_path);
 my $root    = abs_path('.');
 my $sandbox = tempdir( 'vee-tests-XXXXXXXX', TMPDIR => 1, CLEANUP => 1 );
 my $bin     = "$sandbox/bin";
@@ -55,6 +55,11 @@ sub run_vee { my ( $dir, $args, $input, $env ) = @_; run_tool( $dir, 'vee', $arg
 
 sub run_tool {
     my ( $dir, $tool, $args, $input, $env ) = @_;
+    return run_command( $dir, [ "$bin/$tool", @$args ], $input, $env );
+}
+
+sub run_command {
+    my ( $dir, $command, $input, $env ) = @_;
     my $io = tempdir( 'io-XXXXXXXX', DIR => $sandbox );
     write_file( "$io/in", $input // '' );
     my $pid = fork();
@@ -68,7 +73,7 @@ sub run_tool {
         open STDIN,  '<', "$io/in"  or die $!;
         open STDOUT, '>', "$io/out" or die $!;
         open STDERR, '>', "$io/err" or die $!;
-        exec {"$bin/$tool"} "$bin/$tool", @$args;
+        exec { $command->[0] } @$command;
         die "exec: $!";
     }
     my $deadline  = time() + 15;

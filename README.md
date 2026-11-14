@@ -6,8 +6,17 @@ No database, application server, or mandatory configuration.
 
 ## Quick start
 
-Put the executable files from `bin/` in a directory on your `PATH` (see INSTALL),
-then run vee in your publication directory:
+Install into your own account, without root access:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+sh install.sh
+```
+
+The default destination is `~/.local/bin`. The installer prints the PATH setting
+if needed. From a checkout, simply run `sh install.sh`; use `--prefix "$HOME"`
+for `~/bin`, or another writable prefix. See INSTALL for details. Then run vee
+in your publication directory:
 
 ```sh
 vee -t 'First post'
