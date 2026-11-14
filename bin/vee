@@ -676,8 +676,23 @@ CUSTOM_SETUP=default_setup
 
  cleanup()
 {
-  if [ -n "${WORK:-}" ]; then rm -rf "$WORK"; fi
-  if [ "${LOCKED:-0}" = 1 ]; then rmdir "$DIR/.vee.lock"; fi
+  _EXIT_STATUS=$?
+  _KEEP_WORK=0
+  if [ "$_EXIT_STATUS" -ne 0 ] && [ -n "${DRAFT:-}" ] && [ -f "$DRAFT" ]; then
+    _RECOVERY="$DIR/.vee-recovery"
+    if (umask 077; mkdir -p "$_RECOVERY") && chmod 700 "$_RECOVERY" &&
+       mv "$DRAFT" "$_RECOVERY/draft.$SEC.$$"; then
+      chmod 600 "$_RECOVERY/draft.$SEC.$$" || :
+      printf 'vee: draft saved to %s\n' "$_RECOVERY/draft.$SEC.$$" >&2
+    else
+      _KEEP_WORK=1
+      printf 'vee: could not save draft; recover it from %s before removing the lock\n' "$WORK" >&2
+    fi
+  fi
+  if [ "$_KEEP_WORK" = 0 ]; then
+    if [ -n "${WORK:-}" ]; then rm -rf "$WORK"; fi
+    if [ "${LOCKED:-0}" = 1 ]; then rmdir "$DIR/.vee.lock"; fi
+  fi
 }
 
  die_cleanly()
@@ -955,6 +970,15 @@ done
 case $GOPHERMODE in 0|1|2) ;; *) die_error "invalid Gopher mode";; esac
 [ ! -d "$INDEX" ] || die_error "index is a directory: $INDEX"
 [ ! -d "$GOPHERMAP" ] || die_error "gophermap is a directory: $GOPHERMAP"
+if [ "$GOPHERMODE" != 2 ] && [ "$RAWEXT" = "$FORMAT" ]; then
+  die_error "raw and HTML extensions must differ"
+fi
+if [ "$GOPHERMODE" != 0 ] && [ "$RAWEXT" = "$GOPHER_FORMAT" ]; then
+  die_error "raw and Gopher extensions must differ"
+fi
+if [ "$GOPHERMODE" = 1 ] && [ "$FORMAT" = "$GOPHER_FORMAT" ]; then
+  die_error "HTML and Gopher extensions must differ"
+fi
 mkdir -p "$DIR"
 mkdir "$DIR/.vee.lock" 2>/dev/null || die_error "blog is locked (another vee process or an interrupted run); inspect $DIR/.vee.lock"
 LOCKED=1

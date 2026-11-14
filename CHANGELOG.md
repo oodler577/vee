@@ -12,6 +12,7 @@ Alpine/BusyBox, native macOS, and FreeBSD.
 - Preserve piped input exactly, including backslashes and missing final newline.
 - Report editor, hook, formatter, and argument failures with nonzero exit codes.
 - Use fmt or fold when groff is unavailable; keep explicit groff support.
+- Save drafts from failed operations in a private recovery directory.
 - Stage generated output and index updates; lock writers and clean up on signals.
 - Repair veecat body extraction, numeric listing order, paths with spaces, and
   portable recursive finding without find -maxdepth.

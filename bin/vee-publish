@@ -18,4 +18,4 @@ command -v rsync >/dev/null 2>&1 || { printf '%s\n' 'vee-publish: rsync is requi
 [ -n "${DIR:-}" ] && [ -d "$DIR" ] || { printf '%s\n' 'vee-publish: set DIR to the publication directory in ~/.veerc' >&2; exit 1; }
 if [ "$VERBOSE" = 1 ]; then printf 'Publishing %s to %s\n' "$DIR" "$SERVER"; fi
 # Include .vee: published HTML links depend on those files.
-rsync -ptuvPzh --stats --exclude='.vee.lock/' --exclude='.veerc' --exclude='.git/' -e ssh -- "$DIR/" "$SERVER"
+rsync -ptuvPzh --stats --exclude='.vee.lock/' --exclude='.vee-recovery/' --exclude='.veerc' --exclude='.git/' -e ssh -- "$DIR/" "$SERVER"

@@ -98,7 +98,10 @@ release the lock. After a crash or SIGKILL, inspect the lock's work directory an
 recover any useful draft before manually removing the lock. Never remove a lock
 while its process is running. Publication is staged per output file, not a
 transaction across the whole site: failure can leave a recoverable raw post or
-some completed output. Read the error and correct it before retrying.
+some completed output. Read the error and correct it before retrying. Failed
+operations save their draft in the private `.vee/.vee-recovery/` directory and
+print its path. This directory is excluded by `vee-publish`. If saving the draft
+also fails, the working directory and lock are retained for manual recovery.
 
 Use `-U` to create publicly readable files, or `-u 0077` for private files. The
 caller’s umask is otherwise respected. All path components must be accessible to
