@@ -9,7 +9,7 @@ No database, application server, or mandatory configuration.
 Install into your own account, without root access:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/install.sh -o install.sh
 sh install.sh
 ```
 
@@ -38,7 +38,7 @@ escaped. Write only content you intend to publish.
 ## Uninstall
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/uninstall.sh -o uninstall.sh
+curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/uninstall.sh -o uninstall.sh
 sh uninstall.sh --dry-run
 sh uninstall.sh
 ```

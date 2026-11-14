@@ -16,7 +16,7 @@ To install into "$HOME/bin" instead:
 
 Without a checkout, download the standalone installer from GitHub:
 
-    curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+    curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/install.sh -o install.sh
     sh install.sh
 
 The standalone installer uses curl or wget to fetch a pinned, tested 2.0 commit;
@@ -47,7 +47,7 @@ into "$HOME/bin" is removed with:
 
 A standalone copy is available from GitHub:
 
-    curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/uninstall.sh -o uninstall.sh
+    curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/uninstall.sh -o uninstall.sh
     sh uninstall.sh
 
 The uninstaller removes only the six named commands, ignores missing commands,
