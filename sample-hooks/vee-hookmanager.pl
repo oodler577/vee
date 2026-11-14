@@ -13,22 +13,22 @@ my $FILTERDIR = "sample-filters/";
 
 # add new filters to the list - note, they are run in top-down order
 # warning - filters are not checked for existence first
-my @FILTERS = (
-               "$FILTERDIR/vee-filter.sh",
-               "$FILTERDIR/vee-filter.pl",
-               ,);
+my @FILTERS = ( "$FILTERDIR/vee-filter.sh", "$FILTERDIR/vee-filter.pl",, );
 
 #
 # automated from here on out - do not touch
 #
-my $FILTERS = join("|",@FILTERS);
-my $out = "";
+my $FILTERS = join( "|", @FILTERS );
+my $out     = "";
+
 # loop over STDIN and capture qscript
 while (<>) {
-  $out .= $_;
+    $out .= $_;
 }
+
 # open pipe to filters, execute
-open(FILTER, "|$FILTERS");
-  # send contents of qscript to filters
-  print FILTER  $out;
+open( FILTER, "|$FILTERS" );
+
+# send contents of qscript to filters
+print FILTER $out;
 close(FILTER);
