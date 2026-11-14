@@ -1,0 +1,78 @@
+name: Portability
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unix:
+    name: ${{ matrix.os }} / ${{ matrix.shell }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            shell: /bin/dash
+          - os: ubuntu-latest
+            shell: /bin/bash
+          - os: ubuntu-latest
+            shell: /usr/bin/busybox sh
+          - os: macos-latest
+            shell: /bin/sh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y busybox groff
+      - run: uname -a; perl -v
+      - run: prove -lr t
+        env:
+          VEE_TEST_SHELL: ${{ matrix.shell }}
+      - name: Executable shebangs
+        run: prove -lr t
+  alpine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: BusyBox userland without groff
+        run: |
+          docker run --rm -v "$PWD:/src:ro" alpine:3.22 sh -ec '
+            apk add --no-cache perl perl-utils
+            mkdir /work
+            cp -R /src/. /work/
+            adduser -D tester
+            chown -R tester:tester /work
+            su tester -c "cd /work && uname -a && prove -lr t"
+          '
+  freebsd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: vmactions/freebsd-vm@811efaaac0668df8bfb8308c3ec997b5ab50037b # v1
+        with:
+          prepare: pkg install -y perl5
+          run: |
+            set -e
+            uname -a
+            perl -v
+            prove -lr t
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck -S warning bin/vee bin/vee-* bin/veecat bin/veels bin/veefind
+      - run: for script in bin/vee bin/vee-* bin/veecat bin/veels bin/veefind; do sh -n "$script"; done
