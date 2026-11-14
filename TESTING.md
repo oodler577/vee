@@ -39,10 +39,19 @@ The ordinary portability workflow runs on every push and pull request. It tests
 Ubuntu under dash, bash, and BusyBox ash; native macOS; Alpine; and a FreeBSD VM.
 Ubuntu installs groff while Alpine omits it, exercising both default formatter
 paths. Static analysis runs ShellCheck at warning severity and sh -n. Actions are
-pinned to commit IDs. All workflow tokens have read-only repository access.
+pinned to commit IDs. Portability and stress workflow tokens have read-only repository access. The
+separate release-publishing job requests contents write permission to attach
+assets and publish after verification succeeds.
 
 Tests verify behavior, not every implementation detail. Generated timestamps
 are allowed to vary; input bytes and rebuilt Gopher maps are compared exactly.
 The finite corpus and stress suite are not a proof against every possible
 failure. In particular, whole-site transactions, SIGKILL cleanup, arbitrary
 binary input, and filename newlines/tabs are not promised.
+
+
+Tagged releases use .github/workflows/release.yml and reuse the full portability
+matrix. The final job validates the version, release notes, and master ancestry,
+then publishes install.sh and uninstall.sh as assets. A published release is not
+silently replaced. Before tagging a future version, update the standalone
+installer runtime pin, version-specific notes, and download URLs deliberately.
