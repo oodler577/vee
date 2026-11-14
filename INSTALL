@@ -16,7 +16,7 @@ To install into "$HOME/bin" instead:
 
 Without a checkout, download the standalone installer from GitHub:
 
-    curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+    curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/install.sh -o install.sh
     sh install.sh
 
 The standalone installer uses curl or wget to fetch a pinned, tested 2.0 commit;
@@ -34,3 +34,25 @@ is optional: copy dot.veerc to .veerc in the publication directory if desired.
 Use vee -h or README.md for commands and configuration.
 
 The optional vee-publish helper additionally requires rsync and SSH.
+
+Uninstall using the matching script (no root access needed):
+
+    sh uninstall.sh --dry-run
+    sh uninstall.sh
+
+Supply the same --prefix used for installation. For example, an installation
+into "$HOME/bin" is removed with:
+
+    sh uninstall.sh --prefix "$HOME"
+
+A standalone copy is available from GitHub:
+
+    curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/uninstall.sh -o uninstall.sh
+    sh uninstall.sh
+
+The uninstaller removes only the six named commands, ignores missing commands,
+and leaves directories, unrelated files, blogs, configuration, and shell PATH
+settings intact. It refuses directories, symlinks, or special files at command
+paths before removing anything. Removal is not a transaction across all files;
+a filesystem error during deletion may require correcting the problem and
+running the script again. It has no network or Perl dependency.

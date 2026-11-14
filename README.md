@@ -9,7 +9,7 @@ No database, application server, or mandatory configuration.
 Install into your own account, without root access:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/install.sh -o install.sh
+curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/install.sh -o install.sh
 sh install.sh
 ```
 
@@ -34,6 +34,18 @@ for literal text, `-f fmt` or `-f fold` for wrapping, or `-f groff` explicitly.
 Literal text mode preserves the historical ability to include HTML in web posts;
 post bodies are **not** automatically HTML-escaped. Titles in generated HTML are
 escaped. Write only content you intend to publish.
+
+## Uninstall
+
+```sh
+curl -fsSL https://github.com/oodler577/vee/releases/download/v2.0/uninstall.sh -o uninstall.sh
+sh uninstall.sh --dry-run
+sh uninstall.sh
+```
+
+Use the same `--prefix` as installation if you chose a custom location. This
+removes the six installed commands; blogs, configuration, shell startup files,
+and other commands remain in place. No root access, Git, or Perl is required.
 
 ## Everyday commands
 

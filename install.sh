@@ -13,6 +13,7 @@ Default: $HOME/.local/bin. No root access or Perl required.
 From a checkout, use the adjacent bin/ files. A standalone copy downloads
 commands from GitHub using curl or wget. VEE_REF may select another Git ref;
 the default is a pinned, tested 2.0 commit. Re-running replaces installed commands.
+Use the companion uninstall.sh with the same prefix to remove the commands.
 EOF
 }
 
@@ -39,7 +40,7 @@ fi
 case $PREFIX in /*) ;; *) PREFIX=$PWD/$PREFIX;; esac
 BINDIR=$PREFIX/bin
 COMMANDS='vee veels veecat veefind vee-rebuild vee-publish'
-REF=${VEE_REF:-fb5cf4443540a4377048889280396c8270c83506}
+REF=${VEE_REF:-5464a397c8f2c552e25b4686a6b884afbfa82cb4}
 case $REF in ''|*[!a-zA-Z0-9._/-]*) fail 'VEE_REF must be a GitHub branch, tag, or commit';; esac
 
 SOURCE=

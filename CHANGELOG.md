@@ -5,6 +5,8 @@
 Portability matrix verified on GitHub Actions: Linux (dash, bash, BusyBox ash),
 Alpine/BusyBox, native macOS, and FreeBSD.
 
+- Add a matching non-privileged uninstall.sh with --prefix, --dry-run,
+  conflict preflight, and preservation of blogs/configuration/unrelated files.
 - Add a non-privileged install.sh, usable from a checkout or downloaded from
   GitHub, with staged downloads and a configurable installation prefix.
 - Add a core-Perl test suite runnable with prove, including isolated subprocesses,
@@ -22,7 +24,8 @@ Alpine/BusyBox, native macOS, and FreeBSD.
 - Retain original dates during rebuilds; refresh edited HTML/Gopher titles.
 - Apply explicit CLI settings after config; respect configured directories.
 - Restrict purge to known post suffixes and support Gopher-only purge.
-- Repair optional publishing to include the .vee files that published links need.
+- Repair optional publishing to recursively include the .vee files that published
+  links need and preserve the phlogsrc symlink.
 - Repair bundled custom formatter examples and test dispatch/hooks without
   requiring third-party formatters.
 - Document installation of all companion commands, compatibility boundaries,
