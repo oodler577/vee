@@ -5,6 +5,8 @@
 Portability matrix verified on GitHub Actions: Linux (dash, bash, BusyBox ash),
 Alpine/BusyBox, native macOS, and FreeBSD.
 
+- Add a matching non-privileged uninstall.sh with --prefix, --dry-run,
+  conflict preflight, and preservation of blogs/configuration/unrelated files.
 - Add a non-privileged install.sh, usable from a checkout or downloaded from
   GitHub, with staged downloads and a configurable installation prefix.
 - Add a core-Perl test suite runnable with prove, including isolated subprocesses,

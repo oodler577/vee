@@ -35,6 +35,18 @@ Literal text mode preserves the historical ability to include HTML in web posts;
 post bodies are **not** automatically HTML-escaped. Titles in generated HTML are
 escaped. Write only content you intend to publish.
 
+## Uninstall
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/oodler577/vee/release/2.0/uninstall.sh -o uninstall.sh
+sh uninstall.sh --dry-run
+sh uninstall.sh
+```
+
+Use the same `--prefix` as installation if you chose a custom location. This
+removes the six installed commands; blogs, configuration, shell startup files,
+and other commands remain in place. No root access, Git, or Perl is required.
+
 ## Everyday commands
 
 ```sh

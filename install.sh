@@ -13,6 +13,7 @@ Default: $HOME/.local/bin. No root access or Perl required.
 From a checkout, use the adjacent bin/ files. A standalone copy downloads
 commands from GitHub using curl or wget. VEE_REF may select another Git ref;
 the default is a pinned, tested 2.0 commit. Re-running replaces installed commands.
+Use the companion uninstall.sh with the same prefix to remove the commands.
 EOF
 }
 

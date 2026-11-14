@@ -25,7 +25,8 @@ Tests cover CLI validation, source-byte preservation, HTML/Gopher modes, raw
 metadata extraction, numeric post ordering, custom paths/config/templates,
 editing, rebuilds, purge boundaries, formatters, failures, time zones, and
 permissions. Installer tests cover user-local and custom prefixes, installed
-commands, mocked GitHub downloads, failed downloads, and destination conflicts.
+commands, mocked GitHub downloads, failed downloads, and destination conflicts. Uninstaller tests cover matched-prefix round trips,
+preview mode, repeated removal, unrelated-file preservation, and conflicts.
 Permission-denial assertions skip explicitly when run as root;
 Ubuntu/macOS and the Alpine job run them as ordinary users.
 
