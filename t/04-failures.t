@@ -1,0 +1,21 @@
+use strict; use warnings; use Test::More; use File::Path qw(make_path); use lib 't/lib'; use VeeTest;
+my $d=blog();
+my $r=run_vee($d,['-b','-U','-f','none','-t','Original'],"original\n"); is($r->{code},0,'baseline');
+my @raw=raw_files($d); my $original=slurp($raw[0]); my $index=slurp("$d/vee.html");
+write_file("$d/vee-pre","#!/bin/sh\nexit 42\n"); chmod 0755,"$d/vee-pre";
+$r=run_vee($d,['-b','-U','-f','none','-t','Failed'],"failed\n"); isnt($r->{code},0,'failed hook reported');
+is(slurp($raw[0]),$original,'old raw survives'); is(slurp("$d/vee.html"),$index,'old index survives');
+is(scalar(raw_files($d)),1,'pre-hook failure creates no post'); ok(!-d "$d/.vee/.vee.lock",'failed command unlocks');
+unlink "$d/vee-pre";
+make_path("$d/.vee/.vee.lock");
+$r=run_vee($d,['-b','-U','-f','none'],"blocked\n"); isnt($r->{code},0,'concurrent writer refused'); like($r->{err},qr/locked/,'lock explained');
+is(slurp($raw[0]),$original,'locked raw survives'); rmdir "$d/.vee/.vee.lock";
+$r=run_vee($d,['-r','99','-U','-f','none']); isnt($r->{code},0,'missing post fails');
+$r=run_vee($d,['-b','-U','-f','missing-formatter'],"body\n"); isnt($r->{code},0,'unknown formatter fails');
+write_file("$d/editor-fail","#!/bin/sh\nexit 19\n"); chmod 0755,"$d/editor-fail";
+$r=run_vee($d,['-U','-t','Editor failure'],undef,{EDITOR=>"$d/editor-fail"}); isnt($r->{code},0,'editor failure reported');
+is(slurp($raw[0]),$original,'editor failure preserves old post');
+# A directory at the publication target forces a real rename failure, even as root.
+my $bad=blog(); make_path("$bad/vee.html");
+$r=run_vee($bad,['-b','-U','-f','none'],"body\n"); isnt($r->{code},0,'unusable index fails');
+done_testing;

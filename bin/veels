@@ -1,87 +1,32 @@
 #!/bin/sh
-
-# This is a companion tool to vee that is used internally by vee; if
-# you plan on writing custom scripts to manage your posts, I do suggest
-# using `veels` as the primary was of listing the files for iteration
-# or for whatever you use it for.
-
-#Usage:
-#  veels [ -d dir/with/.raw/files ] [ -r ] [ -e raw|txt ]
-
-DIR=.vee
-SORT_NEW_FIRST='sort -t. -nr'
-SORT_OLD_FIRST='sort -t. -n'
-SORT="$SORT_NEW_FIRST"
-STRIPEXT=0
-USELS=0
-LSOPTS='-lat'
-EXT=raw
-
- die_error()
-{ 
-  echo "$1"
-  exit 1
-}
-
- die_cleanly()
-{ 
-  exit 0
-}
-
+# List raw post paths in timestamp order, one path per line.
+set -eu
+DIR=.vee EXT=raw REVERSE=0 STRIPEXT=0 USELS=0 LSOPTS=-lat
+if [ -f ./.veerc ]; then . ./.veerc; fi
 while getopts 'd:e:hlL:rx' option; do
-    case $option in
-    d) if [ -d "$OPTARG" ]; then
-         DIR="$OPTARG"
-       else
-         echo "$OPTARG" is not a directory!
-         die_cleanly
-       fi
-       ;;
-    e) EXT=$OPTARG
-       ;;
-    l) USELS=1 #use ls with default opts
-       ;;
-    L) USELS=1 #use ls with custom opts
-       LSOPTS="$OPTARG"
-       ;;
-    r) SORT=$SORT_OLD_FIRST  # list in reverse post order
-       ;;
-    x) STRIPEXT=1 #strip .raw from output
-       ;;
-    h) usage # some help page
-       die_cleanly
-       ;;
-    esac
+  case $option in
+    d) DIR=$OPTARG;; e) EXT=$OPTARG;; r) REVERSE=1;; x) STRIPEXT=1;;
+    l) USELS=1;; L) USELS=1; LSOPTS=$OPTARG;;
+    h) printf '%s\n' 'Usage: veels [-d directory] [-e extension] [-r] [-x] [-l|-L ls-options]'; exit 0;;
+    *) exit 2;;
+  esac
 done
-
- read_config()
-{ if [ -e ./.veerc ]; then
-    . ./.veerc
-  fi
-} 
-
- get_sorted()
-{
-  ls -1 ${DIR}/*.${EXT} | ${SORT}
-}
-
- _ls ()
-{
-  ls ${LSOPTS} ${1}
-}
-
-#-- main program body
-
-read_config   
-
-for f in $(get_sorted); do
-  if [ 1 -eq $USELS ]; then
-      _ls "$f"
+[ -d "$DIR" ] || { printf 'veels: not a directory: %s\n' "$DIR" >&2; exit 1; }
+case $DIR in /*|./*|../*) ;; *) DIR=./$DIR;; esac
+if [ "$REVERSE" = 1 ]; then ORDER=-n; else ORDER=-nr; fi
+# Prefix the timestamp so directory names cannot affect ordering.
+for file in "$DIR"/*."$EXT"; do
+  [ -f "$file" ] || continue
+  name=${file##*/}
+  printf '%s\t%s\n' "${name%%.*}" "$file"
+done | sort "$ORDER" | cut -f2- | while IFS= read -r file; do
+  if [ "$USELS" = 1 ]; then
+    # LSOPTS is intentionally a whitespace-separated option list.
+    # shellcheck disable=SC2086
+    ls $LSOPTS "$file"
+  elif [ "$STRIPEXT" = 1 ]; then
+    printf '%s\n' "${file%.*}"
   else
-    if [ 1 -eq $STRIPEXT ]; then
-      echo "${f%\.*}"
-    else 
-      echo "$f"
-    fi
+    printf '%s\n' "$file"
   fi
 done
