@@ -1,6 +1,14 @@
-Using the 3rd party tool, 'pandoc', it's simple to have markdown to html
-support. Since a lot of stuff inside of bin/vee adds HTML for you, markdown
-being a useful source format is going require getting a lot of this stuff moved
-out.
+These optional examples are sourced as trusted shell code. Copy ONE example to
+vee-custom.sh in your blog directory, then select its format with -f.
 
-Pull request accepted to add support for 'markdown' tool.
+vee-custom-3rd-party.sh: -f par72, -f pandoc, or -f markdown. Install the selected
+external program yourself. HTML uses that program; Gopher output stays literal.
+
+vee-custom-utf8.sh: -f null (literal text) or -f groff-utf8. The UTF-8 formatter
+uses groff-utf8 if available, otherwise groff with -Tutf8.
+
+Custom formatters receive _OUTPUT_TYPE (html/gopher), RAW/gRAW, and FINAL/gFINAL.
+Write to the supplied output path; vee stages it before replacing the published
+file. Return a nonzero status on failure. Formatters see the complete raw post,
+including its historical metadata header. Convert or strip it deliberately if
+your chosen markup processor requires body-only input.

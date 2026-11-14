@@ -3,7 +3,7 @@
 INDEX=index.html
 HEADERTXT=                     # text or `cat some.header.txt` 
 FOOTERTXT="hijacked by .veerc!"
-FORMAT_FUNC=format_with_groff  # default formating
+#FORMAT_FUNC=format_with_groff # optional: otherwise automatic groff/fmt/fold selection
 
 # GopherMode - 1 = -g, 2 = -G
 GOPHERMODE=0

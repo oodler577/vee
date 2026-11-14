@@ -1,51 +1,33 @@
-# Formatting options for 3rd party software
-
-# use the "par" formatting utility, no HTML is generated so you rely on <pre> to encapsulate
- format_with_par72()
-{ 
-     PAR=`which par`;
-     if [ "$PAR" == "" ]; then
-       echo par is not installed
-       die_cleanly
-     else
-       cat ${RAW} | ${PAR} -w 72 >> ${FINAL}
-     fi
-}
-
-# uses pandoc, which has a lot of depenencies, but it an all-to-all converter
- format_with_pandoc() # example implements the same as -f none
-{ 
-     PANDOC=`which pandoc`;
-     if [ "$PANDOC" == "" ]; then
-       echo pandoc is not installed
-       die_cleanly
-     else
-       cat ${RAW} | ${PANDOC} --from=markdown --to=html >> ${FINAL}
-     fi
-}
-
-# uses markdown, a markdown-to-html converter tool
- format_with_mardown() # e
+# shellcheck shell=sh disable=SC2034,SC2154
+# Variables are supplied by the calling vee script.
+# Optional HTML formatters. Source as ./vee-custom.sh through vee's extension API.
+# Gopher remains plain text; external tools are needed only for HTML output.
+format_with_par72()
 {
-    MARKDOWN=`which markdown`;
-    if [ "$MARKDOWN" == "" ]; then
-        echo markdown is not installed
-        die_cleanly
-    else
-        cat ${RAW} | ${MARKDOWN} >> ${FINAL}
-    fi
+  if [ "$_OUTPUT_TYPE" = gopher ]; then with_no_formatting; return; fi
+  command -v par >/dev/null 2>&1 || die_error 'par is not installed'
+  par -w 72 < "$RAW" >> "$FINAL"
 }
-
- custom_set_format_func()
-{ case "$1" in
-    par72) FORMAT_FUNC=format_with_par72
-            ;;
-    pandoc) FORMAT_FUNC=format_with_pandoc
-            ;;
-    markdown) FORMAT_FUNC=format_with_markdown
-            ;;
-    *) echo "$1 bad format type" 
-       die_cleanly
-       ;;
-  esac 
+format_with_pandoc()
+{
+  if [ "$_OUTPUT_TYPE" = gopher ]; then with_no_formatting; return; fi
+  command -v pandoc >/dev/null 2>&1 || die_error 'pandoc is not installed'
+  pandoc --from=markdown --to=html < "$RAW" >> "$FINAL"
+}
+format_with_markdown()
+{
+  if [ "$_OUTPUT_TYPE" = gopher ]; then with_no_formatting; return; fi
+  command -v markdown >/dev/null 2>&1 || die_error 'markdown is not installed'
+  markdown < "$RAW" >> "$FINAL"
+}
+# Preserve the misspelled legacy function name for existing configurations.
+format_with_mardown() { format_with_markdown; }
+custom_set_format_func()
+{
+  case $1 in
+    par72) FORMAT_FUNC=format_with_par72;;
+    pandoc) FORMAT_FUNC=format_with_pandoc;;
+    markdown) FORMAT_FUNC=format_with_markdown;;
+    *) die_error "bad format type: $1";;
+  esac
 }

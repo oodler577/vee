@@ -1,96 +1,30 @@
 #!/bin/sh
-
-DIR=.vee
-FIND=`which find`
-
-SORT_NEW_FIRST='sort -t. -nr'
-SORT_OLD_FIRST='sort -t. -n'
-SORT="$SORT_NEW_FIRST"
-STRIPEXT=0
-USEFIND=0
-FINDOPTS=
-MAXDEPTH=1
-
- die_error()
-{ 
-  echo "$1"
-  exit 1
-}
-
- die_cleanly()
-{ 
-  exit 0
-}
-
- usage() 
-{
-  man veefind
-}
-
+# Recursive counterpart to veels. -M limits directory depth (default: 1).
+set -eu
+DIR=.vee EXT=raw DEPTH=1 REVERSE=0 STRIPEXT=0 FINDOPTS=
+if [ -f ./.veerc ]; then . ./.veerc; fi
 while getopts 'd:hF:M:rx' option; do
-    case $option in
-    d) if [ -d "$OPTARG" ]; then
-         cd "$OPTARG"
-       else
-         echo "$OPTARG" is not a directory!
-         die_cleanly
-       fi
-       ;;
-    F) USEFIND=1 #use find with custom opts
-       FINDOPTS="$OPTARG"
-       ;;
-    M) MAXDEPTH="$OPTARG"
-       ;;
-    r) SORT=$SORT_OLD_FIRST  # list in reverse post order
-       ;;
-    x) STRIPEXT=1 #strip .raw from output
-       ;;
-    h) usage # some help page
-       die_cleanly
-       ;;
-    esac
+  case $option in
+    d) cd "$OPTARG";; F) FINDOPTS=$OPTARG;; M) DEPTH=$OPTARG;;
+    r) REVERSE=1;; x) STRIPEXT=1;;
+    h) printf '%s\n' 'Usage: veefind [-d blog-directory] [-M depth] [-r] [-x] [-F find-options]'; exit 0;;
+    *) exit 2;;
+  esac
 done
-
- read_config()
-{ if [ -e ./.veerc ]; then
-    . ./.veerc
-  fi
-} 
-
- get_sorted()
-{
-    $FIND $DIR -maxdepth $MAXDEPTH -name "*.raw" | $SORT
-}
-
- get_title()
-{
-    TITLE=$(head -n 3 "$1" | tail -n 1)
-    echo "$TITLE"
-}
-
- get_date()
-{
-    DATE=$(head -n 1 "$1")
-    echo "$DATE"
-}
-
-#-- main program body
-
-#-- read config, $(pwd)/.veerc (happens after "-d" so it's consistent
-#--      with how bin/vee does it)
-read_config   
-
-for f in $(get_sorted); 
-do
-    # title is the 3rd line
-    TITLE=$(get_title "$f")
-
-    # full date string (not epoch) is the first line
-    DATE=$(get_date "$f")
-
-    if [ 1 -eq $STRIPEXT ]; then
-      echo "${f%\.*}"
-    else 
-      echo "$f"
-    fi
-done
+# Read the selected blog's config after changing directory.
+if [ -f ./.veerc ]; then . ./.veerc; fi
+case $DEPTH in ''|*[!0-9]*) printf '%s\n' 'veefind: invalid depth' >&2; exit 2;; esac
+[ -d "$DIR" ] || { printf 'veefind: not a directory: %s\n' "$DIR" >&2; exit 1; }
+case $DIR in /*|./*|../*) ;; *) DIR=./$DIR;; esac
+if [ "$REVERSE" = 1 ]; then ORDER=-n; else ORDER=-nr; fi
+# Filter depth ourselves: find -maxdepth is not a POSIX option.
+# FINDOPTS is an explicitly requested, whitespace-separated find expression.
+# shellcheck disable=SC2086
+find "$DIR" -type f -name "*.$EXT" $FINDOPTS |
+  awk -v root="$DIR/" -v depth="$DEPTH" '
+    { relative=substr($0,length(root)+1); n=split(relative,parts,"/");
+      if(n<=depth) { split(parts[n],stamp,"."); print stamp[1] "\t" $0 } }' |
+  sort "$ORDER" | cut -f2- | while IFS= read -r file; do
+    if [ "$STRIPEXT" = 1 ]; then file=${file%.*}; fi
+    printf '%s\n' "$file"
+  done

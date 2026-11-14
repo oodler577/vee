@@ -1,9 +1,15 @@
 #!/bin/sh
+# Config and custom formatters may read these legacy compatibility variables.
+# shellcheck disable=SC2034
 
-VERSION=2.0-rc1
+VERSION=2.0
+
+# Fail rather than publish a successful-looking partial result.
+set -e
+set -f
 
 if [ ! "$EDITOR" ]; then
-  EDITOR=vi
+  EDITOR="vi"
 fi
 
 MARGIN=67
@@ -72,6 +78,14 @@ FORMAT_DISPATCHER=default_set_format_func
 FORMAT_CUSTOM_DISPATCHER=custom_set_format_func
 FORMAT_CUSTOM_DEFS=./vee-custom.sh # path is relative to -d DIR, where .veerc resides
 
+# groff remains available, but is not required for the default install.
+if ! command -v groff >/dev/null 2>&1; then
+  if command -v fmt >/dev/null 2>&1; then
+    FORMAT_FUNC=format_with_fmt
+  else
+    FORMAT_FUNC=format_with_fold
+  fi
+fi
 UPDATE_INDEX=default_update_index
 CUSTOM_SETUP=default_setup
 
@@ -93,25 +107,25 @@ CUSTOM_SETUP=default_setup
 #
 
  disclaimer()
-{ echo "Copyright (c) 2007-infinity /me"
-  echo "Permission is hereby granted, free of charge, to any person"
-  echo "obtaining a copy of this software and associated documentation"
-  echo "files (the \"Software\"), to deal in the Software without"
-  echo "restriction, including without limitation the rights to use,"
-  echo "copy, modify, merge, publish, distribute, sublicense, and/or"
-  echo "sell copies of the Software, and to permit persons to whom the"
-  echo "Software is furnished to do so, subject to the following"
-  echo "conditions:"
-  echo "The above copyright notice and this permission notice shall be"
-  echo "included in all copies or substantial portions of the Software."
-  echo "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY"
-  echo "KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE"
-  echo "WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE"
-  echo "AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT"
-  echo "HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,"
-  echo "WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING"
-  echo "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR"
-  echo "OTHER DEALINGS IN THE SOFTWARE."
+{ printf '%s\n' "Copyright (c) 2007-infinity /me"
+  printf '%s\n' "Permission is hereby granted, free of charge, to any person"
+  printf '%s\n' "obtaining a copy of this software and associated documentation"
+  printf '%s\n' "files (the \"Software\"), to deal in the Software without"
+  printf '%s\n' "restriction, including without limitation the rights to use,"
+  printf '%s\n' "copy, modify, merge, publish, distribute, sublicense, and/or"
+  printf '%s\n' "sell copies of the Software, and to permit persons to whom the"
+  printf '%s\n' "Software is furnished to do so, subject to the following"
+  printf '%s\n' "conditions:"
+  printf '%s\n' "The above copyright notice and this permission notice shall be"
+  printf '%s\n' "included in all copies or substantial portions of the Software."
+  printf '%s\n' "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY"
+  printf '%s\n' "KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE"
+  printf '%s\n' "WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE"
+  printf '%s\n' "AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT"
+  printf '%s\n' "HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,"
+  printf '%s\n' "WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING"
+  printf '%s\n' "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR"
+  printf '%s\n' "OTHER DEALINGS IN THE SOFTWARE."
 }
 
 #
@@ -151,7 +165,13 @@ CUSTOM_SETUP=default_setup
 
  default_set_format_func()
 { case $1 in
-    default) FORMAT_FUNC=format_with_groff
+    default) if command -v groff >/dev/null 2>&1; then
+               FORMAT_FUNC=format_with_groff
+             elif command -v fmt >/dev/null 2>&1; then
+               FORMAT_FUNC=format_with_fmt
+             else
+               FORMAT_FUNC=format_with_fold
+             fi
              ;;
     groff)   FORMAT_FUNC=format_with_groff
              ;;
@@ -167,195 +187,185 @@ CUSTOM_SETUP=default_setup
                # the custom format file, pass on format nickname
                $FORMAT_CUSTOM_DISPATCHER "$1"
              else
-               echo "bad format type"
-               die_cleanly
+               die_error "bad format type: $1"
              fi
   esac
 }
 
  usage()
-{ echo "                                                                              "
-  echo "                                                                              "
-  echo "           .----------------.  .----------------.  .----------------.         "
-  echo "          | .--------------. || .--------------. || .--------------. |        "
-  echo "          | | ____   ____  | || |  _________   | || |  _________   | |        "
-  echo "          | ||_  _| |_  _| | || | |_   ___  |  | || | |_   ___  |  | |        "
-  echo "          | |  \ \   / /   | || |   | |_  \_|  | || |   | |_  \_|  | |        "
-  echo "          | |   \ \ / /    | || |   |  _|  _   | || |   |  _|  _   | |        "
-  echo "          | |    \ ' /     | || |  _| |___/ |  | || |  _| |___/ |  | |        "
-  echo "          | |     \_/      | || | |_________|  | || | |_________|  | |        "
-  echo "          | |              | || |              | || |              | |        "
-  echo "          | '--------------' || '--------------' || '--------------' |        "
-  echo "           '----------------'  '----------------'  '----------------'         "
-  echo "                   the Zero-conf, commandline blog tool thingy                "
-  echo "                 .... now with GopherMode! ("gopherlog" support)              "
-  echo "                                 (see -g|-G)                                  "
-  echo "                                                                              "
-  echo "Version: $VERSION                                                             "
-  echo "                                                                              "
-  echo "Options:                                                                      "
-  echo "  -b                Batch mode; used when piping in msg via stdin             "
-  echo "  -B  file          Define bottom template; default is ./vee-bottom.tpl       "
-  echo "  -c  [1-9\d*]      Specify the number of characters 'fold' allows per line   "
-  echo "                    this only applies when 'fold' (-f) is used                "
-  echo "  -d  'publis_dir'  Specify the directory .vee is in - defaults to PWD        "
-  echo "  -D                Debug mode with, set -x                                   "
-  echo "  -f  'format'      Option for setting formatinstead of the default, groff;   "
-  echo "                    'groff', 'fmt', 'fold', and 'none' are all supported      "
-  echo "  -g                Update the gophermap file with the INDEX                  "
-  echo "  -G                Exclusively update the gophermap file rather than INDEX   "
-  echo "                    Note: for -g|-G, the gophermap is merely appended to, there"
-  echo "                    is no maintaining of the order from newest first to last; "
-  echo "                    -g|-G will create the gophermap if it isn't found.        "
-  echo "  -h                Prints this blurb                                         "
-  echo "  -i  'custom.html' Specify a custom index file over the default              "
-  echo "  -I                force index file to be \"index.html\"                     "
-  echo "  -l                edit latest post's *.raw; used with '-r' publishes changes;"
-  echo "                    calls reformat automatically;                             "
-  echo "  -L  [1-9\d*]      edit the Nth latest, relative to last post; lp starts at 1"
-  echo "  -m  'message ...' Epecify entry message at commandline and avoid vi         "
-  echo "  -n                Lists all entries, newest first, then quits               "
-  echo "  -o                Lists all entries, oldest first, then quits               "
-  echo "  -p                See what *raw files don't have an entry in the INDEX      "
-  echo "  -P                Forever deletes all *raw and formatted files associated with"
-  echo "                    posts that are listed with -p;                            "
-  echo "  -r  [1-9\d*]      Reformats the Nth latest post                             "
-  echo "  -R                reformats _all_ .vee/*.raw files; -c applies as well      "
-  echo "  -s  'summary'     Placed below title in INDEX                               "
-  echo "  -t  'title'       Specify title at commandline and avoid annoying default prompt"
-  echo "  -T  file          Define top template; default is ./vee-top.tpl             "
-  echo "  -u  <octal>       Temporarily set umask to <octal>                          "
-  echo "  -U                Temporarily set umask to 0022                             "
-  echo "  -v                Version and exit                                          "
-  echo "  -x  hook          Defines hook if not using default "./vee-pre"; hook       "
-  echo "                    must be executable, i.e., chmod 755 vee-pre               "
-  echo "                                                                              "
-  echo "Examples:                                                                     "
-  echo "                                                                              "
-  echo "%vee                                                                          "
-  echo "                                                                              "
-  echo " user will be prompted for title and presented with vi                        "
-  echo "                                                                              "
-  echo " if no default dir/files are found, they will be created                      "
-  echo "                                                                              "
-  echo "%vee -t \"this is the title\"                                                 "
-  echo "                                                                              "
-  echo " user will just be presented with a vi session;                               "
-  echo "                                                                              "
-  echo "%cat text.txt | vee -b -t \"my title\" -m \"text to go before stdin\"         "
-  echo "                                                                              "
-  echo " This publishes contents of text.txt with provided title; -m's msg will be    "
-  echo " shown above the cat'd text. This means of publishing content is well suited  "
-  echo " for use with cronjobs or batch processes. It also works when GopherMode! is  "
-  echo " invoked (-g|-G).                                                             "
-  echo "                                                                              "
-  echo "%vee -l       # edit and reformat the latest post                             "
-  echo "%vee -L 5     # allows one to edit and reformats the fifth latest post        "
-  echo "%vee -r 8     # reformats the 8th latest post                                 "
-  echo "%vee -n       # see which post is the 8th latest post                         "
-  echo "%vee -R       # reformats ALL posts that have *.raw files                     "
-  echo "                                                                              "
-  echo "To delete a post forever:                                                     "
-  echo "                                                                              "
-  echo "1) delete the entry in the INDEX                                              "
-  echo "                                                                              "
-  echo "2) purge the entry:                                                           "
-  echo "  %vee -p    # make sure it is the one you want to purge                      "
-  echo "  %vee -P    # purge it!                                                      "
-  echo "                                                                              "
-  echo " brings up the latest entry as a vi sessions; when changes are save,          "
-  echo " all messages are reformatted                                                 "
-  echo "                                                                              "
-  echo "              :E We Need to Talk About Gopher Support :E                      "
-  echo "                                                                              "
-  echo "vee supports the creation of content in the gophersphere by formatting text-only"
-  echo "posts using the provided formatters (meant for text-only anyway). vee also goes"
-  echo "a step further and generates the gophermap (index listing) for you.           "
-  echo "                                                                              "
-  echo "All of the vee commands immediately above *should* work when GopherMode! is on"
-  echo "which is as simple as adding the -g xor -G flags. -g invokes the Gopher bits  "
-  echo "*and* the default www support. -G only invokes the Gopher bits. Not using -g  "
-  echo " or -G only involes the traditional www support.                              "
-  echo "                                                                              "
-  echo "Usage examples from above, with GopherMode! enabled:                          "
-  echo "                                                                              "
-  echo "%vee -l -G      # edit and reformat the latest post                           "
-  echo "%vee -L 5 -g    # allows one to edit and reformats the fifth latest post      "
-  echo "%vee -r 8 -G    # reformats the 8th latest post                               "
-  echo "%vee -n         # see which post is the 8th latest post                       "
-  echo "%vee -R -g      # reformats ALL posts that have *.raw files                   "
-  echo "                                                                              "
-  echo "Notes:                                                                        "
-  echo "                                                                              "
-  echo "0. Reminder - vee requires zero configurations to start, but *can* be coed    "
-  echo "   by creating a .veerc file. This is also the case when in GopherGeb!Mode    "
-  echo "                                                                              "
-  echo "1. Batch mode looks for piped input via STDIN; if none after a short time,    "
-  echo "   message creation fails UNLESS something was passed in via '-m' as well.    "
-  echo "   If nothing was passed in via '-t' for the title, some default is used;     "
-  echo "   This is set at the top of the script as 'DEFAULT_TITLE'.                   "
-  echo "                                                                              "
-  echo "2. Interactive mode (default) prompts for a title if no '-t' is provided.     "
-  echo "   Such is the case even if '-m' is used.  If '-m' is not used in this        "
-  echo "                                                                              "
-  echo "3. Gopher support (-g|-G) is limited and users may discover weird issues with "
-  echo "   updating posts or the batch reformatting options. It's a best effort. Also "
-  echo "   the gophermap is fully regenerated whenever a new post is added; for a large"
-  echo "   number of posts this may take a few seconds.                               "
-  echo "                                                                              "
-  echo "4. Patches are welcome; the goal is not more feature bloat, but a nicer       "
-  echo "   way of dealing with STDIN, etc and reports/fixes for any weird gopher phlog"
-  echo "   bugs or UX would be greatly welcomed. vee development laid dormant for years,"
-  echo "   being used as a niche static site generator. But the rediscovery of Gopher "
-  echo "   by the masses has made adding Gopher support a high priority.              "
-  echo "                                                                              "
+{ printf '%s\n' "                                                                              "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "           .----------------.  .----------------.  .----------------.         "
+  printf '%s\n' "          | .--------------. || .--------------. || .--------------. |        "
+  printf '%s\n' "          | | ____   ____  | || |  _________   | || |  _________   | |        "
+  printf '%s\n' "          | ||_  _| |_  _| | || | |_   ___  |  | || | |_   ___  |  | |        "
+  printf '%s\n' "          | |  \ \   / /   | || |   | |_  \_|  | || |   | |_  \_|  | |        "
+  printf '%s\n' "          | |   \ \ / /    | || |   |  _|  _   | || |   |  _|  _   | |        "
+  printf '%s\n' "          | |    \ ' /     | || |  _| |___/ |  | || |  _| |___/ |  | |        "
+  printf '%s\n' "          | |     \_/      | || | |_________|  | || | |_________|  | |        "
+  printf '%s\n' "          | |              | || |              | || |              | |        "
+  printf '%s\n' "          | '--------------' || '--------------' || '--------------' |        "
+  printf '%s\n' "           '----------------'  '----------------'  '----------------'         "
+  printf '%s\n' "                   the Zero-conf, commandline blog tool thingy                "
+  printf '%s\n' "                 .... now with GopherMode! (gopherlog support)              "
+  printf '%s\n' "                                 (see -g|-G)                                  "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "Version: $VERSION                                                             "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "Options:                                                                      "
+  printf '%s\n' "  -b                Batch mode; used when piping in msg via stdin             "
+  printf '%s\n' "  -B  file          Define bottom template; default is ./vee-bottom.tpl       "
+  printf '%s\n' "  -c  [1-9\d*]      Specify the number of characters 'fold' allows per line   "
+  printf '%s\n' "                    this only applies when 'fold' (-f) is used                "
+  printf '%s\n' "  -d  'publis_dir'  Specify the directory .vee is in - defaults to PWD        "
+  printf '%s\n' "  -D                Debug mode with, set -x                                   "
+  printf '%s\n' "  -f  'format'      Option for setting formatinstead of the default, groff;   "
+  printf '%s\n' "                    'groff', 'fmt', 'fold', and 'none' are all supported      "
+  printf '%s\n' "  -g                Update the gophermap file with the INDEX                  "
+  printf '%s\n' "  -G                Exclusively update the gophermap file rather than INDEX   "
+  printf '%s\n' "                    Gopher maps are rebuilt in newest-first order;           "
+  printf '%s\n' "                    existing manually added map entries are replaced.        "
+  printf '%s\n' "                    -g|-G will create the gophermap if it isn't found.        "
+  printf '%s\n' "  -h                Prints this blurb                                         "
+  printf '%s\n' "  -i  'custom.html' Specify a custom index file over the default              "
+  printf '%s\n' "  -I                force index file to be \"index.html\"                     "
+  printf '%s\n' "  -l                edit latest post's *.raw; used with '-r' publishes changes;"
+  printf '%s\n' "                    calls reformat automatically;                             "
+  printf '%s\n' "  -L  [1-9\d*]      edit the Nth latest, relative to last post; lp starts at 1"
+  printf '%s\n' "  -m  'message ...' Epecify entry message at commandline and avoid vi         "
+  printf '%s\n' "  -n                Lists all entries, newest first, then quits               "
+  printf '%s\n' "  -o                Lists all entries, oldest first, then quits               "
+  printf '%s\n' "  -p                See what *raw files don't have an entry in the INDEX      "
+  printf '%s\n' "  -P                Forever deletes all *raw and formatted files associated with"
+  printf '%s\n' "                    posts that are listed with -p;                            "
+  printf '%s\n' "  -r  [1-9\d*]      Reformats the Nth latest post                             "
+  printf '%s\n' "  -R                reformats _all_ .vee/*.raw files; -c applies as well      "
+  printf '%s\n' "  -s  'summary'     Placed below title in INDEX                               "
+  printf '%s\n' "  -t  'title'       Specify title at commandline and avoid annoying default prompt"
+  printf '%s\n' "  -T  file          Define top template; default is ./vee-top.tpl             "
+  printf '%s\n' "  -u  <octal>       Temporarily set umask to <octal>                          "
+  printf '%s\n' "  -U                Temporarily set umask to 0022                             "
+  printf '%s\n' "  -v                Version and exit                                          "
+  printf '%s\n' "  -x  hook          Defines hook if not using default ./vee-pre; hook       "
+  printf '%s\n' "                    must be executable, i.e., chmod 755 vee-pre               "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "Examples:                                                                     "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "%vee                                                                          "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' " user will be prompted for title and presented with vi                        "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' " if no default dir/files are found, they will be created                      "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "%vee -t \"this is the title\"                                                 "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' " user will just be presented with a vi session;                               "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "%cat text.txt | vee -b -t \"my title\" -m \"text to go before stdin\"         "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' " This publishes contents of text.txt with provided title; -m's msg will be    "
+  printf '%s\n' " shown above the cat'd text. This means of publishing content is well suited  "
+  printf '%s\n' " for use with cronjobs or batch processes. It also works when GopherMode! is  "
+  printf '%s\n' " invoked (-g|-G).                                                             "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "%vee -l       # edit and reformat the latest post                             "
+  printf '%s\n' "%vee -L 5     # allows one to edit and reformats the fifth latest post        "
+  printf '%s\n' "%vee -r 8     # reformats the 8th latest post                                 "
+  printf '%s\n' "%vee -n       # see which post is the 8th latest post                         "
+  printf '%s\n' "%vee -R       # reformats ALL posts that have *.raw files                     "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "To delete a post forever:                                                     "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "1) delete the entry in the INDEX                                              "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "2) purge the entry:                                                           "
+  printf '%s\n' "  %vee -p    # make sure it is the one you want to purge                      "
+  printf '%s\n' "  %vee -P    # purge it!                                                      "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' " brings up the latest entry as a vi sessions; when changes are save,          "
+  printf '%s\n' " all messages are reformatted                                                 "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "              :E We Need to Talk About Gopher Support :E                      "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "vee supports the creation of content in the gophersphere by formatting text-only"
+  printf '%s\n' "posts using the provided formatters (meant for text-only anyway). vee also goes"
+  printf '%s\n' "a step further and generates the gophermap (index listing) for you.           "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "All of the vee commands immediately above *should* work when GopherMode! is on"
+  printf '%s\n' "which is as simple as adding the -g xor -G flags. -g invokes the Gopher bits  "
+  printf '%s\n' "*and* the default www support. -G only invokes the Gopher bits. Not using -g  "
+  printf '%s\n' " or -G only involes the traditional www support.                              "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "Usage examples from above, with GopherMode! enabled:                          "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "%vee -l -G      # edit and reformat the latest post                           "
+  printf '%s\n' "%vee -L 5 -g    # allows one to edit and reformats the fifth latest post      "
+  printf '%s\n' "%vee -r 8 -G    # reformats the 8th latest post                               "
+  printf '%s\n' "%vee -n         # see which post is the 8th latest post                       "
+  printf '%s\n' "%vee -R -g      # reformats ALL posts that have *.raw files                   "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "Notes:                                                                        "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "0. Reminder - vee requires zero configurations to start, but *can* be coed    "
+  printf '%s\n' "   by creating a .veerc file. This is also the case when in GopherGeb!Mode    "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "1. Batch mode reads STDIN until EOF; use </dev/null for message-only jobs.    "
+  printf '%s\n' "   Piped text is preserved, including an unterminated final line.             "
+  printf '%s\n' "   If nothing was passed in via '-t' for the title, some default is used;     "
+  printf '%s\n' "   This is set at the top of the script as 'DEFAULT_TITLE'.                   "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "2. Interactive mode (default) prompts for a title if no '-t' is provided.     "
+  printf '%s\n' "   Such is the case even if '-m' is used.  If '-m' is not used in this        "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "3. Gopher support (-g|-G) is limited and users may discover weird issues with "
+  printf '%s\n' "   updating posts or the batch reformatting options. It's a best effort. Also "
+  printf '%s\n' "   the gophermap is fully regenerated whenever a new post is added; for a large"
+  printf '%s\n' "   number of posts this may take a few seconds.                               "
+  printf '%s\n' "                                                                              "
+  printf '%s\n' "4. Patches are welcome; the goal is not more feature bloat, but a nicer       "
+  printf '%s\n' "   way of dealing with STDIN, etc and reports/fixes for any weird gopher phlog"
+  printf '%s\n' "   bugs or UX would be greatly welcomed. vee development laid dormant for years,"
+  printf '%s\n' "   being used as a niche static site generator. But the rediscovery of Gopher "
+  printf '%s\n' "   by the masses has made adding Gopher support a high priority.              "
+  printf '%s\n' "                                                                              "
   disclaimer
-  exit 1
+  return 0
+}
+
+ html_escape()
+{
+  printf '%s' "$1" | sed 's/\&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'
 }
 
  default_update_html_index()
-{ echo "<!-- ;$SEC; -->$PUBLISHED:<a href=\"$1\"> $3</a>" >> $INDEX
+{
+  cp "$INDEX" "$WORK/index"
+  printf '<!-- ;%s; -->%s:<a href="%s"> %s</a>\n' "$SEC" "$PUBLISHED" "$(html_escape "$1")" "$(html_escape "$3")" >> "$WORK/index"
   if [ -n "$SUMMARY" ]; then
-	SEC=$(expr "$SEC" - 1)
-    echo "<!-- ;$SEC; -->$SUMMARY" >> "$INDEX"
+    printf '<!-- ;%s; -->%s\n' "$((SEC - 1))" "$SUMMARY" >> "$WORK/index"
   fi
+  sort -t';' -nr -k2,2 "$WORK/index" > "$WORK/index.sorted"
+  mv "$WORK/index.sorted" "$INDEX"
 }
 
  default_update_gophermap()
-{ # rebuild the entire $GOPHERMAP
-  # toggle IFS if in -b mode
-  if [ 1 -eq $LISTENSTDIN ]; then
-    _OLDIFS=$IFS
-    IFS=$OLDIFS
+{
+  _MAP="$WORK/gophermap"
+  printf '%s\n\n' "$GOPHERMAP_HEADER" > "$_MAP"
+  veels -d "$DIR" -e "$RAWEXT" > "$WORK/list-gopher"
+  while IFS= read -r _RAW; do
+    _BASE=${_RAW%.*}
+    [ -f "$_BASE.$GOPHER_FORMAT" ] || continue
+    _TITLE=$(printf '%s\n' "$_RAW" | veecat -t)
+    _DATE=$(printf '%s\n' "$_RAW" | veecat -d | awk '{print $3 " " $2 " " $6}')
+    _FILE=${_BASE##*/}.$GOPHER_FORMAT
+    printf '0[%s] %s\tphlogsrc/%s\n' "$_DATE" "$_TITLE" "$_FILE" >> "$_MAP"
+  done < "$WORK/list-gopher"
+  if [ ! -e phlogsrc ] && [ ! -L phlogsrc ]; then
+    ln -s "$DIR" phlogsrc
   fi
-  if [ -e $GOPHERMAP ]; then
-    echo Found existing $GOPHERMAP, renaming to $GOPHERMAP.bkp
-    mv $GOPHERMAP $GOPHERMAP.bkp #(be nice, just move to the side)
-  fi
-  default_setup_gophermap        # initialize gophermap
-  for f in $(veels -d "$DIR" -e "$GOPHER_FORMAT"); do
-    _RAW=$(echo $f | sed 's/$GOPHER_FORMAT/$RAWEXT/')
-    _TITLE=$(echo $_RAW | veecat -t)
-    _DATE=$(echo $_RAW | veecat -d | awk '{print $3 " " $2 " " $6}')  #e.g., Fri May 29 09:02:12 UTC 2020
-    # creating a symlink to $DIR because the default $DIR
-    # starts with a '.' and the gopher server seems to not
-    # want to serve files in such a directory
-    fileLink=$(echo $f | sed "s/$DIR/phlogsrc/")
-    # seems relative paths can't be directories that start
-    # with a dot (e.g., ".vee")
-    ln -s $DIR phlogsrc > /dev/null 2>&1 # rather than check if link exists, just try it and hide error
-    printf "0[$_DATE] $_TITLE\t$fileLink\n"   >> $GOPHERMAP
-  done
-  echo                               >> $GOPHERMAP
-  echo                               >> $GOPHERMAP
-  echo $GOPHERMAP_FOOTER | fmt -w 67 >> $GOPHERMAP
-  echo                               >> $GOPHERMAP
-  echo                               >> $GOPHERMAP
-  echo Generated with vee.           >> $GOPHERMAP
-  # toggle IFS back if temporarily set to interactive IFS above
-  if [ 1 -eq $LISTENSTDIN ]; then
-    IFS=$_OLDIFS
-  fi
+  printf '\n%s\n\nGenerated with vee.\n' "$GOPHERMAP_FOOTER" >> "$_MAP"
+  mv "$_MAP" "$GOPHERMAP"
 }
 
  #"$FINAL" "$gFINAL" "$RAW" "$gRAW" "$TITLE"
@@ -370,16 +380,16 @@ CUSTOM_SETUP=default_setup
 }
 
  output_top()
-{ echo "$HEADERTXT"          > "$FINAL"
+{ printf '%s\n' "$HEADERTXT"          > "$FINAL"
   if [ -e "$TOP_TPL" ]; then
      cat "$TOP_TPL"         >> "$FINAL"
    else
-     echo "<!-- <?xml version=\"1.0\" encoding=\"UTF-8\" ?> --><!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html xmlns=\"http://www.w3.org/1999/xhtml\">"  >> "$FINAL"
-     echo "<meta http-equiv=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\">"                     >> "$FINAL"
-     echo "  <head><title>$TITLE - $DATE</title></head>"                                                >> "$FINAL"
-     echo "  <body>"                                                                                    >> "$FINAL"
-     echo "    <pre>"                                                                                   >> "$FINAL"
-     echo "<a href=\"../$INDEX\">[index]</a><a href=\"./$RAWNAME\">[raw]</a><a href=\"../\">[main]</a>" >> "$FINAL"
+     printf '%s\n' "<!-- <?xml version=\"1.0\" encoding=\"UTF-8\" ?> --><!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html xmlns=\"http://www.w3.org/1999/xhtml\">"  >> "$FINAL"
+     printf '%s\n' "<meta http-equiv=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\">"                     >> "$FINAL"
+     printf '%s\n' "  <head><title>$(html_escape "$TITLE") - $DATE</title></head>"                                                >> "$FINAL"
+     printf '%s\n' "  <body>"                                                                                    >> "$FINAL"
+     printf '%s\n' "    <pre>"                                                                                   >> "$FINAL"
+     printf '%s\n' "<a href=\"../$INDEX\">[index]</a><a href=\"./$RAWNAME\">[raw]</a><a href=\"../\">[main]</a>" >> "$FINAL"
    fi
    echo                   >> "$FINAL"
 }
@@ -387,71 +397,56 @@ CUSTOM_SETUP=default_setup
  output_bottom()
 { echo                   >> "$FINAL"
   echo --                >> "$FINAL"
-  echo "$FOOTERTXT"      >> "$FINAL"
+  printf '%s\n' "$FOOTERTXT"      >> "$FINAL"
   if [ -e "$BOT_TPL" ]; then
     cat "$BOT_TPL"       >> "$FINAL"
   else
-    echo "    </pre>"    >> "$FINAL"
-    echo "  </body>"     >> "$FINAL"
-    echo "</html>"       >> "$FINAL"
+    printf '%s\n' "    </pre>"    >> "$FINAL"
+    printf '%s\n' "  </body>"     >> "$FINAL"
+    printf '%s\n' "</html>"       >> "$FINAL"
   fi
 }
 
 # begin formatting funcs
 
  format_with_groff()
-{ #sed 1liner from http://sed.sourceforge.net/sed1line.txt
+{
+  command -v groff >/dev/null 2>&1 || die_error "groff is not installed; use -f fmt, fold, or none"
   if [ "html" = "$_OUTPUT_TYPE" ]; then
-    groff -man -Tascii "$RAW" > $$.tmp.$RAWEXT
-    sed '/^$/N;/\n$/D' < $$.tmp.$RAWEXT > $$.tmp.final
-    cat $$.tmp.final >> "$FINAL"
+    groff -man -Tascii "$RAW" > "$WORK/formatted"
+    sed '/^$/N;/\n$/D' "$WORK/formatted" >> "$FINAL"
+  else
+    groff -man -Tascii "$gRAW" > "$WORK/formatted"
+    sed '/^$/N;/\n$/D' "$WORK/formatted" > "$gFINAL"
   fi
-  if [ "gopher" = "$_OUTPUT_TYPE" ]; then
-    groff -man -Tascii "$gRAW" > $$.tmp.$RAWEXT
-    sed '/^$/N;/\n$/D' < $$.tmp.$RAWEXT > $$.tmp.final
-    cat $$.tmp.final  > "$gFINAL"
-  fi
-  rm $$.tmp.$RAWEXT $$.tmp.final
 }
 
  format_with_fmt()
-{ if [ 0 -lt $MARGIN ]; then
-    if [ "html" = $_OUTPUT_TYPE ]; then
-      fmt -w $MARGIN "$RAW" > $$.tmp.$RAWEXT
-      cat $$.tmp.$RAWEXT >> "$FINAL"
-    fi
-    if [ "gopher" = $_OUTPUT_TYPE ]; then
-      fmt -w $MARGIN "$gRAW" > $$.tmp.$RAWEXT
-      cat $$.tmp.$RAWEXT  > "$gFINAL"
-    fi
-    rm $$.tmp.$RAWEXT
+{
+  if [ "$MARGIN" -eq 0 ]; then with_no_formatting; return; fi
+  if [ "html" = "$_OUTPUT_TYPE" ]; then
+    fmt -w "$MARGIN" "$RAW" >> "$FINAL"
   else
-    with_no_formatting
+    fmt -w "$MARGIN" "$gRAW" > "$gFINAL"
   fi
 }
 
  format_with_fold()
-{ if [ 0 -lt $MARGIN ]; then
-    if [ "html" = $_OUTPUT_TYPE ]; then
-      fold -s -w $MARGIN "$RAW" > $$.tmp.$RAWEXT
-      cat $$.tmp.$RAWEXT >> "$FINAL"
-    fi
-    if [ "gopher" = $_OUTPUT_TYPE ]; then
-      fold -s -w $MARGIN "$gRAW" > $$.tmp.$RAWEXT
-      cat $$.tmp.$RAWEXT  > "$gFINAL"
-    fi
-    rm $$.tmp.$RAWEXT
+{
+  if [ "$MARGIN" -eq 0 ]; then with_no_formatting; return; fi
+  if [ "html" = "$_OUTPUT_TYPE" ]; then
+    fold -s -w "$MARGIN" "$RAW" >> "$FINAL"
   else
-    with_no_formatting
+    fold -s -w "$MARGIN" "$gRAW" > "$gFINAL"
   fi
 }
 
  with_no_formatting()
-{ if [ "html" = $_OUTPUT_TYPE ]; then
+{
+  if [ "html" = "$_OUTPUT_TYPE" ]; then
     cat "$RAW" >> "$FINAL"
-  fi
-  if [ "gopher" = $_OUTPUT_TYPE ]; then
-    cat "$gRAW"  > "$gFINAL"
+  else
+    cat "$gRAW" > "$gFINAL"
   fi
 }
 
@@ -488,17 +483,25 @@ CUSTOM_SETUP=default_setup
   RAWNAME=$2
   preformat $_OUTPUT_TYPE     # expecting 'html'
   if [ ! -e "$RAW" ]; then
-    echo "$DATE"   > "$RAW"   # in RAW, line 1 is date
+    _RAW_TARGET=$RAW
+    RAW="$WORK/new.raw"
+    printf '%s\n' "$DATE"   > "$RAW"   # in RAW, line 1 is date
     echo          >> "$RAW"
-    echo "$TITLE" >> "$RAW"   # in RAW, line 2 is title
+    printf '%s\n' "$TITLE" >> "$RAW"   # in RAW, line 2 is title
     echo          >> "$RAW"
-    echo "--"     >> "$RAW"
+    printf '%s\n' "--"     >> "$RAW"
     echo          >> "$RAW"   # this blank line is important
     cat "$DRAFT"  >> "$RAW"
+    mv "$RAW" "$_RAW_TARGET"
+    RAW=$_RAW_TARGET
   fi
+  _HTML_TARGET=$FINAL
+  FINAL="$WORK/post.html"
   $OUTPUT_TOP
   $FORMAT_FUNC
   $OUTPUT_BOT
+  mv "$FINAL" "$_HTML_TARGET"
+  FINAL=$_HTML_TARGET
   postformat $_OUTPUT_TYPE    # expecting 'html'
 }
 
@@ -509,17 +512,25 @@ CUSTOM_SETUP=default_setup
   gRAWNAME=$2
   preformat $_OUTPUT_TYPE    # expecting 'gopher'
   if [ ! -e "$gRAW" ]; then
-    echo "$DATE"   > "$gRAW" # in gRAW, line 1 is date
+    _RAW_TARGET=$gRAW
+    gRAW="$WORK/new.raw"
+    printf '%s\n' "$DATE"   > "$gRAW" # in gRAW, line 1 is date
     echo          >> "$gRAW"
-    echo "$TITLE" >> "$gRAW" # in gRAW, line 2 is title
+    printf '%s\n' "$TITLE" >> "$gRAW" # in gRAW, line 2 is title
     echo          >> "$gRAW"
-    echo "--"     >> "$gRAW"
+    printf '%s\n' "--"     >> "$gRAW"
     echo          >> "$gRAW" # this blank line is important
     cat "$DRAFT"  >> "$gRAW"
+    mv "$gRAW" "$_RAW_TARGET"
+    gRAW=$_RAW_TARGET
   fi
+  _GOPHER_TARGET=$gFINAL
+  gFINAL="$WORK/post.txt"
   $OUTPUT_TOP_GOPHER         # NOTE: not set by default
   $FORMAT_FUNC
   $OUTPUT_BOT_GOPHER         # NOTE not set by default
+  mv "$gFINAL" "$_GOPHER_TARGET"
+  gFINAL=$_GOPHER_TARGET
   postformat $_OUTPUT_TYPE   # expecting 'gopher'
 }
 
@@ -536,16 +547,37 @@ CUSTOM_SETUP=default_setup
   _OUTPUT_TYPE=none
 }
 
+ refresh_html_title()
+{
+  if [ "$GOPHERMODE" != 2 ] && [ -f "$INDEX" ]; then
+    _HREF="<a href=\"$(html_escape "$DIR/$1.$FORMAT")\">"
+    _OLD_HREF="<a href=\"$(html_escape "${DIR#./}/$1.$FORMAT")\">"
+    # Pass replacement through a file so awk does not interpret title backslashes.
+    printf '%s' "$(html_escape "$TITLE")" > "$WORK/title"
+    awk -v href="$_HREF" -v oldhref="$_OLD_HREF" -v titlefile="$WORK/title" '
+      BEGIN { getline title < titlefile; close(titlefile) }
+      { active=href; start=index($0,active); if(!start) { active=oldhref; start=index($0,active) } if(start) {
+          rest=substr($0,start+length(active)); finish=index(rest,"</a>");
+          if(finish) $0=substr($0,1,start+length(active)-1) " " title substr(rest,finish)
+        } print }' "$INDEX" > "$WORK/index.edited"
+    mv "$WORK/index.edited" "$INDEX"
+  fi
+}
+
  reformat_singleton()
 {  if [ -e "$DIR/$1.$RAWEXT" ]; then
+     DATE=$(head -n 1 "$DIR/$1.$RAWEXT")
+     TITLE=$(sed -n '3p' "$DIR/$1.$RAWEXT")
      cat "$DIR/$1.$RAWEXT" > "$DRAFT"
      format_main "$1.$FORMAT" "$1.$GOPHER_FORMAT" "$1.$RAWEXT"
+     refresh_html_title "$1"
    fi
 }
 
  reformat_all()
 {
-   for f in $(veels -d "$DIR" -r); do
+   veels -d "$DIR" -e "$RAWEXT" -r > "$WORK/list"
+   while IFS= read -r f; do
      # From: Randall R Schulz <rrschulz at cris dot com>
      FULLNAME="$f"
      DIR=${FULLNAME%/*}
@@ -554,85 +586,117 @@ CUSTOM_SETUP=default_setup
      MINBASE=${FILE%%.*}
      MAXSUF=${FILE#*.}
      MINSUF=${FILE##*.}
-     _TITLE=$(echo $f | veecat -t)
-     echo "..reformatting '$_TITLE'"
+     _TITLE=$(printf '%s\n' "$f" | veecat -t)
+     printf '%s\n' "..reformatting '$_TITLE'"
      reformat_singleton "$MAXBASE"
-   done
+   done < "$WORK/list"
 }
 
  list_newest_first()
 { COUNT=1
-  for _RAW  in $(veels -d "$DIR"); do
-    _TITLE=$(echo $_RAW | veecat -t)
-    _DATE=$(echo $_RAW | veecat -d)
+  veels -d "$DIR" -e "$RAWEXT" > "$WORK/list"
+  while IFS= read -r _RAW; do
+    _TITLE=$(printf '%s\n' "$_RAW" | veecat -t)
+    _DATE=$(printf '%s\n' "$_RAW" | veecat -d)
     printf "%4d)  " "$COUNT"
-    echo  $_DATE - $_TITLE
-    COUNT=$(expr $COUNT + 1)
-  done
+    printf '%s - %s\n' "$_DATE" "$_TITLE"
+    COUNT=$((COUNT + 1))
+  done < "$WORK/list"
 }
 
  list_oldest_first()
 { COUNT=1
-  for _RAW  in $(veels -d "$DIR" -r); do
-    _TITLE=$(echo $_RAW | veecat -t)
-    _DATE=$(echo $_RAW | veecat -d)
+  veels -d "$DIR" -e "$RAWEXT" -r > "$WORK/list"
+  while IFS= read -r _RAW; do
+    _TITLE=$(printf '%s\n' "$_RAW" | veecat -t)
+    _DATE=$(printf '%s\n' "$_RAW" | veecat -d)
     printf "%4d)  " "$COUNT"
-    echo  $_DATE - $_TITLE
-    COUNT=$(expr $COUNT + 1)
-  done
+    printf '%s - %s\n' "$_DATE" "$_TITLE"
+    COUNT=$((COUNT + 1))
+  done < "$WORK/list"
 }
 
  get_path2post()
 {
   GOAL=$1
   COUNT=1
-  for FILE in $(veels -d "$DIR"); do
+  veels -d "$DIR" -e "$RAWEXT" > "$WORK/list"
+  while IFS= read -r FILE; do
      FULLNAME=$FILE
      DIR=${FULLNAME%/*}
      FILE=${FULLNAME##*/}
      MAXBASE=${FILE%.*}
      if [ "$COUNT" -eq "$GOAL" ]; then
-       echo "$MAXBASE"
+       printf '%s\n' "$MAXBASE"
        break
       fi
-      COUNT=$(expr "$COUNT" + 1)
-  done
+      COUNT=$((COUNT + 1))
+  done < "$WORK/list"
 }
 
  purge_entries()
 { LEVEL=$1
   COUNT=0
-  if [ ! -e "$INDEX" ]; then
-    echo "Can't find index, \"$INDEX\""
-    die_cleanly
+  _PURGE_INDEX=$INDEX
+  _PURGE_EXT=$FORMAT
+  if [ "$GOPHERMODE" = 2 ]; then
+    _PURGE_INDEX=$GOPHERMAP
+    _PURGE_EXT=$GOPHER_FORMAT
   fi
-  for FILE in $(veels -d "$DIR"); do
+  [ -f "$_PURGE_INDEX" ] || die_error "cannot find publication index: $_PURGE_INDEX"
+  veels -d "$DIR" -e "$RAWEXT" > "$WORK/list"
+  while IFS= read -r FILE; do
      FULLNAME=$FILE
      DIR=${FULLNAME%/*}
      FILE=${FULLNAME##*/}
      MAXBASE=${FILE%.*}
-     ENTRY=$(grep "$MAXBASE" "$INDEX")
+     ENTRY=$(grep -F "$MAXBASE.$_PURGE_EXT" "$_PURGE_INDEX" || :)
      if [ -z "$ENTRY" ]; then
        COUNT=$(expr "$COUNT" + 1)
        if [ "$LEVEL" -eq 1 ]; then
-         echo "$DIR/$FILE (not really purged, use -P for realz)"
+         printf '%s\n' "$DIR/$FILE (not really purged, use -P for realz)"
        elif [ "$LEVEL" -eq 2 ]; then
-         echo "$DIR/$MAXBASE[.$RAWEXT,$FORMAT] (delebed)"
-         rm -f "$DIR/$MAXBASE"*
+         printf '%s\n' "$DIR/${MAXBASE}[.$RAWEXT,$FORMAT] (delebed)"
+         rm -f "$DIR/$MAXBASE.$RAWEXT" "$DIR/$MAXBASE.$FORMAT" "$DIR/$MAXBASE.$GOPHER_FORMAT"
        fi
      fi
-  done
+  done < "$WORK/list"
   if [ "$LEVEL" -eq 1 ]; then
-    echo "use -P to remove all $COUNT entrie(s)"
+    printf '%s\n' "use -P to remove all $COUNT entrie(s)"
   elif [ "$LEVEL" -eq 2 ]; then
-    echo "removed $COUNT entrie(s)..."
+    printf '%s\n' "removed $COUNT entrie(s)..."
+  fi
+}
+
+ die_error()
+{
+  printf 'vee: %s\n' "$*" >&2
+  exit 1
+}
+
+ cleanup()
+{
+  _EXIT_STATUS=$?
+  _KEEP_WORK=0
+  if [ "$_EXIT_STATUS" -ne 0 ] && [ -n "${DRAFT:-}" ] && [ -f "$DRAFT" ]; then
+    _RECOVERY="$DIR/.vee-recovery"
+    if (umask 077; mkdir -p "$_RECOVERY") && chmod 700 "$_RECOVERY" &&
+       mv "$DRAFT" "$_RECOVERY/draft.$SEC.$$"; then
+      chmod 600 "$_RECOVERY/draft.$SEC.$$" || :
+      printf 'vee: draft saved to %s\n' "$_RECOVERY/draft.$SEC.$$" >&2
+    else
+      _KEEP_WORK=1
+      printf 'vee: could not save draft; recover it from %s before removing the lock\n' "$WORK" >&2
+    fi
+  fi
+  if [ "$_KEEP_WORK" = 0 ]; then
+    if [ -n "${WORK:-}" ]; then rm -rf "$WORK"; fi
+    if [ "${LOCKED:-0}" = 1 ]; then rmdir "$DIR/.vee.lock"; fi
   fi
 }
 
  die_cleanly()
-{ if [ -e "$DRAFT" ]; then
-    rm -f "$DRAFT"
-  fi
+{
   exit 0
 }
 
@@ -645,7 +709,7 @@ MESSAGE=
 SET_DEFAULT_FORMAT_FUNC=
 
 # get opts ! stdin append to anything passed in by -m
-while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
+while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:Pps:u:U' option; do
     case $option in
     u) _CUSTOM_UMASK=$OPTARG
        ;;
@@ -665,13 +729,14 @@ while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
     I) INDEX="index.html" # force INDEX to index.html
        ;;
     d) if [ -d "$OPTARG" ]; then
-         cd "$OPTARG"
+         cd "$OPTARG" || die_error "cannot enter $OPTARG"
        else
-         echo "$OPTARG" is not a directory!
-         die_cleanly
+         die_error "$OPTARG is not a directory"
        fi
        ;;
-    r) _POST2REFORMAT=$OPTARG
+    r) case $OPTARG in ''|*[!0-9]*) die_error "invalid post number: $OPTARG";; esac
+       [ "$OPTARG" -gt 0 ] || die_error "post number must be positive"
+       _POST2REFORMAT=$OPTARG
        ;;
     R) _REFORMATALL=1
        ;;
@@ -686,16 +751,16 @@ while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
        ;;
     l) _POST2EDIT=1
        ;;
-    L) _POST2EDIT=$OPTARG
+    L) case $OPTARG in ''|*[!0-9]*) die_error "invalid post number: $OPTARG";; esac
+       [ "$OPTARG" -gt 0 ] || die_error "post number must be positive"
+       _POST2EDIT=$OPTARG
        ;;
     m) MESSAGE=$OPTARG
        USE_EDITOR=0
        ;;
-    n) list_newest_first
-       die_cleanly
+    n) _LIST=newest
        ;;
-    o) list_oldest_first
-       die_cleanly
+    o) _LIST=oldest
        ;;
     s) SUMMARY=$OPTARG
        ;;
@@ -710,13 +775,12 @@ while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
        ;;
     P) _PURGELEVEL=2
        ;;
-    h) usage | less
+    h) usage
        die_cleanly
        ;;
     x) PREFORMAT_HOOK=$OPTARG
        ;;
-    ?) #usage | less
-       die_cleanly
+    ?) die_error "invalid option or missing argument"
        ;;
     esac
 done
@@ -728,9 +792,10 @@ done
   fi
   if [ $LISTENSTDIN -ne 1 ]; then
     # brute check for umask 0022 if not using -b ($LISTENSTDIN -eq 1)
-    if [ $(umask) != "0022" ]; then
+    if [ "$(umask)" != "0022" ]; then
       _default=yes
-      read -p "Would you like to temporarily set umask to 0022, to create files that are world readable [$_default]?" tmp_set_umask
+      printf 'Would you like to temporarily set umask to 0022, to create files that are world readable [%s]?' "$_default"
+      IFS= read -r tmp_set_umask || tmp_set_umask=no
       if [ -z "$tmp_set_umask" ]; then
         tmp_set_umask=$_default
       fi
@@ -741,10 +806,11 @@ done
       fi
     fi
   else
-    echo Warning: umask should be set to 0022. Your files may not be visible to others.
+    : # Batch mode preserves the caller's umask unless explicitly overridden.
   fi
 
   if [ -e "$FORMAT_CUSTOM_DEFS" ]; then
+    # shellcheck source=/dev/null
     . "$FORMAT_CUSTOM_DEFS"
   fi
 
@@ -754,17 +820,24 @@ done
 
   if [ "$_PURGELEVEL" -ge 1 ]; then
     purge_entries "$_PURGELEVEL"
+    if [ "$_PURGELEVEL" = 2 ] && [ "$GOPHERMODE" != 0 ]; then
+      default_update_gophermap
+    fi
     die_cleanly
   fi
 
   if [ "$_POST2EDIT" -ge 1 ]; then
     LATEST=$(get_path2post "$_POST2EDIT")
-    $EDITOR "$DIR/$LATEST.$RAWEXT"
+    [ -n "$LATEST" ] || die_error "post does not exist"
+    cp "$DIR/$LATEST.$RAWEXT" "$WORK/edit.raw"
+    $EDITOR "$WORK/edit.raw"
+    mv "$WORK/edit.raw" "$DIR/$LATEST.$RAWEXT"
     _POST2REFORMAT=$_POST2EDIT
   fi
 
   if [ "$_POST2REFORMAT" -ge 1 ]; then
     LATEST=$(get_path2post "$_POST2REFORMAT")
+    [ -n "$LATEST" ] || die_error "post does not exist"
     reformat_singleton "$LATEST"
     if [ 0 != $GOPHERMODE ]; then
       default_update_gophermap
@@ -790,18 +863,11 @@ done
   # Batch message creation: -m and stdin
   # handles -m
   if [ -n "$MESSAGE" ]; then
-    echo "$MESSAGE" >> "$DRAFT"
+    printf '%s\n' "$MESSAGE" >> "$DRAFT"
   fi
 
-  if [ $LISTENSTDIN -eq 1 ]; then
-    OLDIFS=$IFS
-    IFS="" # ensures that leading spaces are retained
-    while read -r IN <&0 ; do # break after 1 sec of no stdin
-      echo "$IN"            # echo's stdin back out so user can see
-      echo "$IN" >> "$DRAFT"
-      LISTENSTDIN=1
-      USE_EDITOR=0
-    done
+  if [ "$LISTENSTDIN" -eq 1 ]; then
+    cat >> "$DRAFT"
   fi
 }
 
@@ -809,17 +875,17 @@ done
  default_setup_html()
 { if [ ! -e "$INDEX" ]; then
     echo
-    echo "...creating $INDEX"
-    echo "<!-- ;10000000000000000000000000; open pre tag --><!-- <?xml version=\"1.0\" encoding=\"UTF-8\" ?> --><!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>my vee index</title><meta http-equiv=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\"></head><body><pre>" >> "$INDEX"
+    printf '%s\n' "...creating $INDEX"
+    printf '%s\n' "<!-- ;10000000000000000000000000; open pre tag --><!-- <?xml version=\"1.0\" encoding=\"UTF-8\" ?> --><!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>my vee index</title><meta http-equiv=\"Content-Type\" CONTENT=\"text/html; charset=UTF-8\"></head><body><pre>" >> "$INDEX"
    # header stuff
-    echo "<!-- ;100000000000000000000000; fixed content -->" >> "$INDEX"
-    echo "<!-- ;10000000000000000000000;  fixed content -->" >> "$INDEX"
-    echo "<!-- ;1000000000000000000000;   fixed content -->" >> "$INDEX"
+    printf '%s\n' "<!-- ;100000000000000000000000; fixed content -->" >> "$INDEX"
+    printf '%s\n' "<!-- ;10000000000000000000000;  fixed content -->" >> "$INDEX"
+    printf '%s\n' "<!-- ;1000000000000000000000;   fixed content -->" >> "$INDEX"
    # footer stuff
-    echo "<!-- ;3; fixed content -->" >> "$INDEX"
-    echo "<!-- ;2; fixed content -->" >> "$INDEX"
-    echo "<!-- ;1; fixed content -->Powered by vee" >> "$INDEX"
-    echo "<!-- ;0; closing pre tag --></pre></body></html>" >> "$INDEX"
+    printf '%s\n' "<!-- ;3; fixed content -->" >> "$INDEX"
+    printf '%s\n' "<!-- ;2; fixed content -->" >> "$INDEX"
+    printf '%s\n' "<!-- ;1; fixed content -->Powered by vee" >> "$INDEX"
+    printf '%s\n' "<!-- ;0; closing pre tag --></pre></body></html>" >> "$INDEX"
     echo
   fi
 }
@@ -827,7 +893,7 @@ done
  default_setup_gophermap()
 { if [ ! -e "$GOPHERMAP" ]; then
     echo
-    echo "...generating updated $GOPHERMAP"
+    printf '%s\n' "...generating updated $GOPHERMAP"
     echo $GOPHERMAP_HEADER > $GOPHERMAP
     echo                  >> $GOPHERMAP
     echo                  >> $GOPHERMAP
@@ -850,7 +916,7 @@ done
     $EDITOR "$DRAFT" && OK=1
     if [ "$OK" -ne 1 ]; then
       echo there has been a problem with your editor session
-      exit
+      exit 1
     fi
   #else
     #echo ...vi mode off
@@ -873,33 +939,61 @@ done
 
 # this case statement may be overkill if "sort -t';' -nr -k2,2" works across platforms
  sort_index()
-{ if [ -e "$INDEX" ]; then
-    case $ARCH in
-     linux)   sort -t';' +0f -1 +1nr "$INDEX" > ".$INDEX.$$.sorted"
-        ;;
-     freebsd) sort -t';' +0f -1 +1nr "$INDEX" > ".$INDEX.$$.sorted"
-        ;;
-     netbsd) sort -t';' +0f -1 +1nr "$INDEX" > ".$INDEX.$$.sorted"
-        ;;
-     macosx)  # -k2,2 sorts by second field as delimted by -t';' - this may actually work
-              # for all platforms
-              sort -t';' -nr -k2,2   "$INDEX" > ".$INDEX.$$.sorted"
-        ;;
-     *)       sort -t';' +0f -1 +1nr "$INDEX" > ".$INDEX.$$.sorted"
-        ;;
-     esac
-     mv ".$INDEX.$$.sorted" "$INDEX" # "rebuild $INDEX
-  fi
+{
+  : # New entries are sorted atomically by default_update_html_index.
 }
 
-#-- main program body
-mkdir -p "$DIR" || echo "found $DIR ..."
-
-read_config     # done after all options are read in, could look in -d before
-                # opts are processed though so opts could override defaults
-                # and config file .. yeah do that
-post_opts       # process options
-"$CUSTOM_SETUP" # initialized indexes, can be defined in .veerc
+# Read configuration after -d; command-line values take precedence.
+read_config
+# Parse a second time to apply explicit command-line overrides after config.
+OPTIND=1
+while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:Pps:u:U' option; do
+  case $option in
+    g) GOPHERMODE=1;; G) GOPHERMODE=2;; i) INDEX=$OPTARG;; I) INDEX=index.html;;
+    t) TITLE=$OPTARG;; s) SUMMARY=$OPTARG;; T) TOP_TPL=$OPTARG;; B) BOT_TPL=$OPTARG;;
+    c) MARGIN=$OPTARG;; x) PREFORMAT_HOOK=$OPTARG;;
+    u) _CUSTOM_UMASK=$OPTARG;; U) _CUSTOM_UMASK=0022;;
+    *) :;; # Other options were handled during the first pass.
+  esac
+done
+case $DIR in /*|./*|../*) ;; *) DIR=./$DIR;; esac
+case $INDEX in /*|./*|../*) ;; *) INDEX=./$INDEX;; esac
+case $GOPHERMAP in /*|./*|../*) ;; *) GOPHERMAP=./$GOPHERMAP;; esac
+case $TITLE in
+  *'
+'*|*'	'*) die_error "title must be a single line without tabs";;
+esac
+case $MARGIN in ''|*[!0-9]*) die_error "invalid width: $MARGIN";; esac
+for _NUMBER in "$_POST2EDIT" "$_POST2REFORMAT"; do
+  case $_NUMBER in ''|*[!0-9]*) die_error "invalid post number: $_NUMBER";; esac
+done
+case $GOPHERMODE in 0|1|2) ;; *) die_error "invalid Gopher mode";; esac
+[ ! -d "$INDEX" ] || die_error "index is a directory: $INDEX"
+[ ! -d "$GOPHERMAP" ] || die_error "gophermap is a directory: $GOPHERMAP"
+if [ "$GOPHERMODE" != 2 ] && [ "$RAWEXT" = "$FORMAT" ]; then
+  die_error "raw and HTML extensions must differ"
+fi
+if [ "$GOPHERMODE" != 0 ] && [ "$RAWEXT" = "$GOPHER_FORMAT" ]; then
+  die_error "raw and Gopher extensions must differ"
+fi
+if [ "$GOPHERMODE" = 1 ] && [ "$FORMAT" = "$GOPHER_FORMAT" ]; then
+  die_error "HTML and Gopher extensions must differ"
+fi
+mkdir -p "$DIR"
+mkdir "$DIR/.vee.lock" 2>/dev/null || die_error "blog is locked (another vee process or an interrupted run); inspect $DIR/.vee.lock"
+LOCKED=1
+WORK="$DIR/.vee.lock/work"
+trap cleanup 0
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+mkdir "$WORK"
+DRAFT="$WORK/draft"
+case ${_LIST:-} in
+  newest) list_newest_first; exit 0;; oldest) list_oldest_first; exit 0;;
+esac
+post_opts
+"$CUSTOM_SETUP"
 get_title
 use_editor
 
@@ -912,7 +1006,7 @@ use_editor
   sort_index
   die_cleanly
 else
-  echo Error! "$DRAFT" not found
+  die_error "no post content"
 fi
 }
 

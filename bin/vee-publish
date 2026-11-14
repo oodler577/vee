@@ -1,56 +1,21 @@
 #!/bin/sh
-
-RSYNC=$(which rsync)
-
-if [ "$RSYNC" == "" ]; then
-    echo "No rsync installed."
-    exit 1
+# Optional rsync/SSH publishing helper. Config is trusted shell code.
+set -eu
+VERBOSE=0 SERVER=
+CONFIG=${VEE_PUBLISH_CONFIG:-"${HOME}/.veerc"}
+if [ -f "$CONFIG" ]; then
+  # shellcheck source=/dev/null
+  . "$CONFIG"
 fi
-
-usage() {
-    cat <<EOS
-    $(basename $0) [options]
-        -v          | be verbose
-        -h          | show this and exit
-        -s <server> | SSH server path
-EOS
-}
-
-STD_VEERC_PATH=~/.veerc
-
-VERBOSE=0
-SERVER=
-
-while getopts 'hs:v' opt
-do
-    case $opt in
-        h) usage && exit 1
-            ;;
-
-        v) VERBOSE=1
-            ;;
-
-        s) SERVER=$OPTARG
-            ;;
-
-        *) usage && exit 1
-            ;;
-    esac
+usage() { printf '%s\n' 'Usage: vee-publish [-v] -s user@host:path'; }
+while getopts 'hs:v' option; do
+  case $option in
+    h) usage; exit 0;; v) VERBOSE=1;; s) SERVER=$OPTARG;; *) usage >&2; exit 2;;
+  esac
 done
-
-if [ "$SERVER" == "" ]; then
-    echo "No server."
-    exit 1
-fi
-
-putstr() {
-    [[ $VERBOSE -eq 1 ]] && echo -e "[$(basename $0)]: $*"
-}
-
-putstr "Reading veerc"
-. $STD_VEERC_PATH || exit 1
-
-putstr "Syncing $DIR/* -> $SERVER"
-rsync -ptuvPzh --stats -e ssh $DIR/* $SERVER
-
-echo "Done."
+[ -n "$SERVER" ] || { printf '%s\n' 'vee-publish: no server specified' >&2; exit 1; }
+command -v rsync >/dev/null 2>&1 || { printf '%s\n' 'vee-publish: rsync is required' >&2; exit 1; }
+[ -n "${DIR:-}" ] && [ -d "$DIR" ] || { printf '%s\n' 'vee-publish: set DIR to the publication directory in ~/.veerc' >&2; exit 1; }
+if [ "$VERBOSE" = 1 ]; then printf 'Publishing %s to %s\n' "$DIR" "$SERVER"; fi
+# Include .vee: published HTML links depend on those files.
+rsync -ptuvPzh --stats --exclude='.vee.lock/' --exclude='.vee-recovery/' --exclude='.veerc' --exclude='.git/' -e ssh -- "$DIR/" "$SERVER"

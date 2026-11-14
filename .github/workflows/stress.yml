@@ -1,0 +1,23 @@
+name: Extended tests
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 7 * * 1'
+permissions:
+  contents: read
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [577, 2007, 2026]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: prove -lr t xt
+        env:
+          VEE_TEST_SEED: ${{ matrix.seed }}
+          VEE_TEST_SHELL: /bin/dash
