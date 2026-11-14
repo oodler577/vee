@@ -32,6 +32,9 @@ jobs:
       - run: prove -lr t
         env:
           VEE_TEST_SHELL: ${{ matrix.shell }}
+      - name: Extended regression tests
+        if: matrix.shell == '/bin/dash'
+        run: prove -lr xt
       - name: Executable shebangs
         run: prove -lr t
   alpine:
@@ -74,5 +77,5 @@ jobs:
         with:
           persist-credentials: false
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: shellcheck -S warning bin/vee bin/vee-* bin/veecat bin/veels bin/veefind
+      - run: shellcheck -S warning bin/vee bin/vee-* bin/veecat bin/veels bin/veefind custom-formatters/*.sh
       - run: for script in bin/vee bin/vee-* bin/veecat bin/veels bin/veefind; do sh -n "$script"; done

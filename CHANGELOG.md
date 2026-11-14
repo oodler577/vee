@@ -1,6 +1,9 @@
 # Changes
 
-## 2.0 release candidate 2
+## 2.0
+
+Portability matrix verified on GitHub Actions: Linux (dash, bash, BusyBox ash),
+Alpine/BusyBox, native macOS, and FreeBSD.
 
 - Add a core-Perl test suite runnable with prove, including isolated subprocesses,
   byte-preservation checks, failure cases, and extended reproducible stress tests.
@@ -17,6 +20,8 @@
 - Apply explicit CLI settings after config; respect configured directories.
 - Restrict purge to known post suffixes and support Gopher-only purge.
 - Repair optional publishing to include the .vee files that published links need.
+- Repair bundled custom formatter examples and test dispatch/hooks without
+  requiring third-party formatters.
 - Document installation of all companion commands, compatibility boundaries,
   recovery behavior, and the existing extension/config interface.
 

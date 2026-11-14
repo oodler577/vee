@@ -2,7 +2,7 @@
 # Config and custom formatters may read these legacy compatibility variables.
 # shellcheck disable=SC2034
 
-VERSION=2.0-rc2
+VERSION=2.0
 
 # Fail rather than publish a successful-looking partial result.
 set -e
@@ -694,7 +694,7 @@ MESSAGE=
 SET_DEFAULT_FORMAT_FUNC=
 
 # get opts ! stdin append to anything passed in by -m
-while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
+while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:Pps:u:U' option; do
     case $option in
     u) _CUSTOM_UMASK=$OPTARG
        ;;
@@ -719,7 +719,9 @@ while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
          die_error "$OPTARG is not a directory"
        fi
        ;;
-    r) _POST2REFORMAT=$OPTARG
+    r) case $OPTARG in ''|*[!0-9]*) die_error "invalid post number: $OPTARG";; esac
+       [ "$OPTARG" -gt 0 ] || die_error "post number must be positive"
+       _POST2REFORMAT=$OPTARG
        ;;
     R) _REFORMATALL=1
        ;;
@@ -734,7 +736,9 @@ while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
        ;;
     l) _POST2EDIT=1
        ;;
-    L) _POST2EDIT=$OPTARG
+    L) case $OPTARG in ''|*[!0-9]*) die_error "invalid post number: $OPTARG";; esac
+       [ "$OPTARG" -gt 0 ] || die_error "post number must be positive"
+       _POST2EDIT=$OPTARG
        ;;
     m) MESSAGE=$OPTARG
        USE_EDITOR=0
@@ -928,7 +932,7 @@ done
 read_config
 # Parse a second time to apply explicit command-line overrides after config.
 OPTIND=1
-while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:X:Pps:u:U' option; do
+while getopts 'DgGf:m:t:T:c:d:i:IbB:hRr:lL:novx:Pps:u:U' option; do
   case $option in
     g) GOPHERMODE=1;; G) GOPHERMODE=2;; i) INDEX=$OPTARG;; I) INDEX=index.html;;
     t) TITLE=$OPTARG;; s) SUMMARY=$OPTARG;; T) TOP_TPL=$OPTARG;; B) BOT_TPL=$OPTARG;;
